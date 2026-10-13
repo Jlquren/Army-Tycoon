@@ -1,0 +1,14 @@
+local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Убедись, что RemoteEvent в ReplicatedStorage называется именно так
+local teleportEvent = ReplicatedStorage:WaitForChild("RequestTeleport")
+
+teleportEvent.OnServerEvent:Connect(function(player, placeId)
+
+	local success, result = pcall(function()
+		TeleportService:Teleport(placeId, player)
+	end)
+	if not success then
+	end
+end)
