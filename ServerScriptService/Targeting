@@ -1,0 +1,229 @@
+
+-- Get Service --
+local PlayersService = game:GetService('Players')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local MarketplaceService = game:GetService('MarketplaceService')
+local TweenService = game:GetService('TweenService')
+local Debris = game:GetService('Debris')
+
+
+local Events = ReplicatedStorage.RE
+local Modules = ReplicatedStorage.Modules
+-- Require --
+local MissilesMod = require(Modules.Missiles)
+
+-- Functions --
+--[[MarketplaceService.ProcessReceipt = function(receiptInfo)
+	local ProductId = receiptInfo.ProductId
+	local PlayerId = receiptInfo.PlayerId
+	local Player = PlayersService:GetPlayerByUserId(PlayerId)
+		
+	if not Player then
+		print('Not processed yet')
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	
+	return Enum.ProductPurchaseDecision.PurchaseGranted
+end]]
+
+
+local function Tween(part,pos,timing)
+	local goal = {}
+	goal.Position = pos
+	
+	local info = TweenInfo.new(timing,Enum.EasingStyle.Linear)
+	
+	local tween = TweenService:Create(part, info, goal)
+	tween:Play()
+	
+	return tween
+end
+
+local function CreateSound(name,parent,volume)
+	parent = parent ~= nil and parent or workspace
+	local sound = ReplicatedStorage.Sounds:FindFirstChild(name)
+	if sound then
+		sound = sound:Clone()
+		sound.Parent = parent
+		if volume then
+			sound.Volume = volume
+		end
+		sound:Play()
+		return sound
+	end
+end
+
+local function DamageWithinRadius(pos,range,player,damage)
+	for _,folder in pairs (workspace.Game.Units:GetChildren()) do
+		for i,unit in pairs (folder:GetChildren()) do
+			--print(unit)
+			if unit and unit.PrimaryPart then
+				local mag = (pos - unit.PrimaryPart.Position).magnitude
+				if mag <= range then
+					if folder.Name ~= player.Name then
+						local uHuman = unit:FindFirstChildOfClass('Humanoid')
+						if uHuman then
+--							local remain = uHuman.Health - damage
+--							if remain<=0 then
+--								damage = uHuman.Health -1
+--							else
+--								damage = damage
+--							end
+							uHuman:TakeDamage(damage)
+						end
+					else
+						--print('Not killing your own troop lol')
+					end
+				end
+				--print('Missile is ',mag,' studs from',unit)
+			end
+		end
+	end
+end
+
+local function Explosion(Type,mod,Bullet)
+	if Type == 'Barrel' then
+		local Visual = ReplicatedStorage.Models.BarrelExplosion:Clone()
+		Visual.Parent = workspace
+		Visual.Position = Bullet.Position
+		local FireEmmit = Visual.Fire
+		local SmokeEmmit = Visual.Smoke
+		Bullet:Destroy()
+		wait(2)
+		repeat
+			Visual.Size = Visual.Size - Vector3.new(.1,0,.1)
+			wait(.05)
+		until Visual.Size.X <= .5
+		Visual:Destroy()
+	elseif Type == 'Missile' then -- SET THIS UP
+		local explosionSound = CreateSound('Explosion',Bullet)
+		local fireSound = CreateSound('FireBurning',Bullet)
+		Bullet.Transparency = 1
+		local Emitter = Bullet.ParticleEmitter
+		Emitter.Size = NumberSequence.new(0)
+		Emitter.Enabled = true
+		local size = mod.Range/3
+		for i = 0,size,1.5 do
+			Emitter.Size = NumberSequence.new(i,i)
+			wait(.05)
+		end
+		wait(2)
+		for i = .5,1,.025 do
+			Emitter.Transparency = NumberSequence.new(i,1)
+			wait(.05)
+		end
+		--print('Now')
+		Bullet:Destroy()
+	end
+end
+
+Events.FireMissile.OnServerEvent:Connect(function(Player,Type,Position)
+	
+	local mod = MissilesMod[Type]
+	
+	if Type == 'Light Artillery' or Type == 'Heavy Artillery' or Type == 'Artillery Barrage' or Type == 'Cruise Missile' or Type == 'Nuke' then
+		local radioSound = CreateSound('radio',Player.PlayerGui,.2)
+		--radioSound.Ended:Wait()
+		Debris:AddItem(radioSound,radioSound.TimeLength)
+		--radioSound:Destroy()
+		
+		wait(1)
+		
+		local amt = 1
+		if Type == 'Artillery Barrage' then
+			amt = 3
+		end
+		local FlyTime = mod.FallTime
+		local initialWaitTime = FlyTime/2
+		if mod.DropDiff then		
+			initialWaitTime = (FlyTime/2) - mod.DropDiff
+		end
+		for i = 1,amt do
+			local Missile = Type == 'Cruise Missile' and ReplicatedStorage.Models.CruiseMissile:Clone() or ReplicatedStorage.Models.Missile:Clone()
+			Missile.Position = Position + Vector3.new(0,mod.StartHeight,0)
+			Missile.Parent = workspace
+			
+			local wSound = CreateSound('WhistleSound')--workspace.WhistleSound:Clone()
+			wSound.Parent = Missile
+			wSound.PlaybackSpeed = wSound.timeLength/mod.FallTime
+			wSound:Play()
+		
+			local offset = 0
+			if i ~= 1 then
+				offset = math.random(mod.SpreadMin,mod.SpreadMax)
+			end
+			local Drop = Tween(Missile,Position + Vector3.new(offset,0,offset),mod.FallTime)
+			local missileDropSound = CreateSound('MissileDropSound',Missile)
+			Drop.Completed:Connect(function()
+				local list = DamageWithinRadius(Missile.Position,mod.Range/2,Player,mod.Damage / amt)
+				
+				missileDropSound:Destroy()
+				Explosion('Missile',mod,Missile)
+			end)
+			wait(initialWaitTime)
+		end
+	elseif Type == 'Napalm Airstrike' or Type == 'Bomb Airstrike' then
+		
+		
+		local Missile = Type == 'Bomb Airstrike' and ReplicatedStorage.Models.Missile:Clone() or ReplicatedStorage.Models.Barrel
+		
+		--print("playing")
+		local Plane = ReplicatedStorage.Models['F-22 Bombing Jet']:Clone()
+		Plane.Position = Position + Vector3.new(0,200,2500)
+		
+--		local radioSound = CreateSound('radio',Player.PlayerGui,.2)
+--		radioSound.Ended:Wait()
+--		radioSound:Destroy()
+
+		local radioSound = CreateSound('radio',Player.PlayerGui,.2)
+		--radioSound.Ended:Wait()
+		Debris:AddItem(radioSound,radioSound.TimeLength)
+		--radioSound:Destroy()
+		
+		wait(1)
+		
+		Plane.Parent = workspace
+		
+		local FlyTime = 10
+		
+		local initialWaitTime = (FlyTime/2) -.025
+				
+		local fire = Tween(Plane,Position + Vector3.new(0,200,-2500),FlyTime)
+		local FlyingSound = CreateSound('JetFlying',Plane)
+		Debris:AddItem(Plane,FlyTime+1)
+		wait(initialWaitTime)
+		for i = 1,3 do
+			local pos = 0
+			if i == 1 then
+				pos = 10
+			elseif i == 2 then
+				pos = 0
+			else
+				pos = -10
+			end
+			local Barrel = Missile:Clone()
+			Barrel.Position = Position + Vector3.new(0,200,pos)
+			Barrel.Parent = workspace
+			local Drop = Tween(Barrel,Position + Vector3.new(0,0,pos),1)
+			
+			Drop.Completed:Connect(function()
+				local list = DamageWithinRadius(Barrel.Position,mod.Range/2,Player,mod.Damage / 3)
+				if Type == 'Bomb Airstrike' then
+					Explosion('Missile',mod,Barrel)
+				else
+					Explosion('Barrel',mod,Barrel)
+				end
+				
+			end)
+			wait(.025)
+		end
+		
+		
+	else
+		print(Type,'Needs to be programmed')
+	end
+end)
+
+
+
+
