@@ -1,0 +1,110 @@
+local module = 
+
+{
+	['Light Artillery'] = 				-- 1
+		{
+			Name = 'Light Artillery',
+			Cost = 25,
+			Product = false,
+			Id = 000000000,
+			
+			Range = 25,
+			Damage = 20,
+			
+			StartHeight = 200,
+			FallTime = 3,
+			
+			RechargeTime = 10,
+		},
+	['Heavy Artillery'] = 				-- 2
+		{
+			Name = 'Heavy Artillery',
+			Cost = 250,
+			Product = false,
+			Id = 910240132,
+			
+			Range = 50,
+			Damage = 50,
+			
+			StartHeight = 200,
+			FallTime = 1,
+			
+			RechargeTime = 10,
+		},
+	['Napalm Airstrike'] = 				-- 4
+		{
+			Name = 'Napalm Airstrike',
+			Cost = 1200,
+			Product = false,
+			Id = 000000000,
+			
+			Range = 50,
+			Damage = 250,
+			
+			RechargeTime = 10,
+		},
+	['Bomb Airstrike'] = 				-- 3
+		{
+			Name = 'Bomb Airstrike',
+			Cost = 650,
+			Product = false,
+			Id = 000000000,
+			
+			Range = 50,
+			Damage = 100,
+			
+			RechargeTime = 10,
+		},
+	['Artillery Barrage'] = 			-- 5
+		{
+			Name = 'Artillery Barrage',
+			Cost = 2250,
+			Product = false,
+			Id = 000000000,
+			
+			Range = 100,
+			Damage = 500,
+			
+			StartHeight = 400,
+			FallTime = 2,
+			
+			DropDiff = .5,	 	--- This is the time between the bullets dropping
+			SpreadMax = 10, 	-- How far off the original position can the extra missiles drop, same with min
+			SpreadMin = -10,
+			
+			RechargeTime = 10,
+		},
+	['Cruise Missile'] = 				-- 6
+		{
+			Name = 'Cruise Missile',
+			Cost = 5000,
+			Product = false,
+			Id = 000000000,
+			
+			Range = 200,
+			Damage = 750,
+			
+			StartHeight = 400,
+			FallTime = 3,
+			
+			RechargeTime = 10,
+		},
+	['Nuke'] = 							-- 7
+		{
+			Name = 'Nuke',
+			Cost = 50,
+			Product = true,
+			Id = 927928933,
+			
+			Range = 500,
+			Damage = 1000,
+			
+			StartHeight = 500,
+			FallTime = 5,
+			
+			RechargeTime = 10,
+		},
+		
+}
+
+return module
