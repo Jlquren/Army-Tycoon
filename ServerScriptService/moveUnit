@@ -1,0 +1,65 @@
+
+local function move(Player, Unit, Target)
+	if Unit == nil then return end
+	local RootPart = Unit.PrimaryPart
+	local Humanoid = Unit:FindFirstChild('Humanoid')
+	if Humanoid and RootPart then
+		--print(Humanoid.WalkToPoint)
+		--if Humanoid.WalkToPoint ~= Vector3.new(0,0,0) then return end
+		if Humanoid:FindFirstChild('SetPoint') then return end
+		local origin = RootPart.Position + Vector3.new(0,3,0)
+		local point = Target
+		local dist = (RootPart.Position - Target).magnitude
+		
+		--print(dist)
+		if RootPart and RootPart:FindFirstChild('Range') then
+			--if dist >= RootPart.Range.Value then
+				if dist >=10 then
+					point = RootPart.Position:Lerp(Target, .60)
+				end
+			--end
+		end
+		
+		local SetPoint = Instance.new("Vector3Value")
+		SetPoint.Name = 'SetPoint'
+		SetPoint.Value = point
+		SetPoint.Parent = Humanoid
+		
+		Humanoid:MoveTo(point)
+		local movement
+		movement = Humanoid.MoveToFinished:Connect(function()
+			local dist = 0
+			
+			if Humanoid.HipHeight ~= 0 then
+				dist = Humanoid.HipHeight
+			end
+			
+			if Humanoid.WalkToPoint == point and (RootPart.Position - Humanoid.WalkToPoint).Magnitude > (3 + dist) then
+				Humanoid:MoveTo(Humanoid.WalkToPoint)
+			elseif Humanoid.WalkToPoint ~= point then
+				movement:Disconnect()
+			else
+				if RootPart.Attacking.Value == nil then
+					game.ReplicatedStorage.RE.spotEnemy:FireClient(Player, Unit)
+				end
+				movement:Disconnect()
+			end
+			SetPoint:Destroy()
+		end)
+		
+		--Humanoid.WalkToPoint = RootPart.Position
+	else
+		--print('NO HUMANIOD OR ROOT')
+	end
+end
+
+game.ReplicatedStorage.RE.moveUnit.OnServerEvent:connect(function(plr, Unit, target)
+	spawn(function()
+		move(plr, Unit, target)
+	end)
+end)
+game.ReplicatedStorage.RE.moveUnit2.Event:connect(function(plr, Unit, target)
+	spawn(function()
+		move(plr, Unit, target)
+	end)
+end)
