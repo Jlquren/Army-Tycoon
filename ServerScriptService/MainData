@@ -1,0 +1,990 @@
+local PlayersStats = {}
+_G.PlayersStats = PlayersStats
+local RunService = game:GetService('RunService')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local MarketplaceService = game:GetService('MarketplaceService')
+local PlayersService = game:GetService('Players')
+local TweenService = game:GetService('TweenService')
+
+local Remotes = ReplicatedStorage.RE
+local Modules = ReplicatedStorage.Modules
+
+local HeroesMod = require(Modules.Heroes)
+local SettingsMod = require(Modules.Settings)
+local GlobalsMod = require(Modules.Globals)
+local MissilesMod = require(Modules.Missiles)
+
+local PlayerDataStore = game:GetService("DataStoreService"):GetDataStore("PlayerMainData_V1.0") -- "PlayerMainData_V1.0"  live version
+
+local function AddCashTo(Player,amount)
+	--print(Player,amount)
+	if PlayersStats[Player] then
+		if amount ~= nil then
+			PlayersStats[Player]['Money'] = PlayersStats[Player]['Money'] + amount
+		end
+		Remotes.changeGui:FireClient(Player,PlayersStats[Player]['Money'])
+		--print('Cash updated')
+	else
+		
+	end
+end
+
+local function AddSpawner(Player,pos)
+	
+	local closest,dist = nil,math.huge
+	for i,v in pairs (workspace.Game.Base.Bases:GetChildren()) do
+		local Spawner = v:FindFirstChild('Spawner')
+		if Spawner then
+			local Interactive = workspace.Game.Base.Interactives:FindFirstChild(v.Name)
+			local mag = (Interactive.Position - pos).magnitude
+			if mag < dist then
+				if v.Spawner.Value == nil then
+					closest = v
+					dist = mag
+				end
+			end
+		end
+	end
+	
+	closest.Spawner.Value = Player
+	
+end
+
+local function addedChar(char,plr)
+	local Humanoid = char:WaitForChild('Humanoid')
+	Humanoid.WalkSpeed = SettingsMod.StartingWalkspeed
+	--print('Walkspeed set')
+	wait(1)
+	AddCashTo(plr)
+	char:SetPrimaryPartCFrame(CFrame.new(workspace.Game.Buttons:WaitForChild(plr.Name)['1'].Position) * CFrame.new(0,10,10) -- waitforchild warn
+	)
+end
+
+local function RemoveSpawner(Player)
+	for i,v in pairs (workspace.Game.Base.Bases:GetChildren()) do
+		local Spawner = v:FindFirstChild('Spawner')
+		if Spawner then
+			if Spawner.Value == Player then
+				Spawner.Value = nil
+			end
+		end
+	end
+end
+
+local function CheckBlacklistForName(name)
+	
+	for i,v in pairs (GlobalsMod.BlackListedBuildingTypes) do
+		if v == name then
+			return true
+		end
+	end
+	
+	return false
+	
+end
+
+game.Players.PlayerAdded:connect(function(player)
+	
+	if not PlayersStats[player] then
+		PlayersStats[player] = {
+			Money = SettingsMod.StartingCash,
+			XP = 0,
+			UnlockedColors = {},
+			Buildings = {},
+			BannerColor = {},
+			Upgrades = {},
+			Rebirth = 0,
+		}
+		
+		local success, savedData = pcall(function()
+			return PlayerDataStore:GetAsync(player.UserId)
+		end)
+		if success then
+			if savedData  then -- I enter in my name here to not load my data for testing
+				PlayersStats[player] = savedData
+				if not PlayersStats[player].Rebirth then
+					PlayersStats[player].Rebirth = 0
+				end
+			else
+				-- Player is a new player
+			end
+		end
+		
+		for i,v in ipairs(game.ReplicatedStorage.Game.Colors:GetChildren()) do
+			local taken = false
+			for i,c in ipairs(game.Players:GetPlayers()) do
+				if GlobalsMod.ColorsTab[c.Name] == v.Value then
+					taken = true
+				end
+			end
+			if taken == false then
+				GlobalsMod.ColorsTab[player.Name] = v.Value
+				print(GlobalsMod.ColorsTab[player.Name],'Selected for',player.Name)
+				break
+			end
+		end
+		
+		local unitFolder1 = Instance.new("Folder", workspace.Game.Units)
+		unitFolder1.Name = player.Name
+		
+		local unitSkin = Instance.new("StringValue", player)
+		unitSkin.Name = "CurrentSkin"
+		unitSkin.Value = "Default"
+		
+		for _,v in ipairs(workspace.Game.Buttons:GetChildren()) do
+			if v.Name == "tycoon" then
+				v.Name = player.Name
+				for _,c in ipairs(v:GetChildren()) do
+					
+					c.BrickColor = GlobalsMod.ColorsTab[player.Name]
+					if PlayersStats[player].Buildings[c.Name] then
+						local Buildings = ReplicatedStorage.Game.Buildings
+						local buildingFolder = Buildings:FindFirstChild(PlayersStats[player].Buildings[c.Name].Building,true)
+						if buildingFolder then
+							local building = buildingFolder:FindFirstChild(PlayersStats[player].Buildings[c.Name].Option)
+							--print(buildingFolder.Name)
+							game.ReplicatedStorage.RE.AddBuilding:Fire(player,building,c)
+							
+						else
+							print(PlayersStats[player].Buildings[c.Name].Building,'BUILDING')
+						end
+					else
+						--print(c.Name,'was WAS NOT SAVED')
+						
+					end
+				end
+				
+				game.ReplicatedStorage.RE.CheckButtons :Fire(player,v)
+				AddSpawner(player,v['1'].Position)
+				break
+			end
+			
+		end
+		
+	end
+	
+	
+	if player.Character then
+		local char = player.Character
+		addedChar(char,player)
+	end
+	player.CharacterAdded:connect(function(char)		
+		addedChar(char,player)
+	end)
+	
+	
+end)
+local function relinquish(player,button)
+	PlayersStats[player].Buildings[button.Name] = nil
+	if button.Name ~= "1" then
+		button.Transparency = 1
+		button.Icon.Transparency = 1
+	else
+		button.Transparency = 0
+		button.Icon.Transparency = 0
+		button.ClickDetector.MaxActivationDistance = 60
+	end
+	if button:FindFirstChildOfClass("Model") then
+		button:FindFirstChildOfClass("Model"):Destroy()
+	end
+	local Max = game.ReplicatedStorage.RE.GetMaxUnits:Invoke(player)
+	game.ReplicatedStorage.RE.UpdateMaxUnits:FireClient(player,Max)
+end
+game.ReplicatedStorage.RE.rebirth.OnServerEvent:connect(function(plr)
+	local maxRebirth = 20
+	--if game.ReplicatedStorage then
+	local base = game.Workspace.Game.Buttons:WaitForChild(plr.Name)
+	if base[maxRebirth]:FindFirstChildOfClass("Model") then
+		for i,v in ipairs(base:GetChildren()) do
+			if v.Class.Value and not  SettingsMod.Products.Buttons[v.Class.Value.Name] then
+				relinquish(plr, v)
+			end
+		end
+		PlayersStats[plr].Rebirth = PlayersStats[plr].Rebirth + 1
+		PlayersStats[plr]['Money'] =  SettingsMod.StartingCash
+		Remotes.changeGui:FireClient(plr,SettingsMod.StartingCash)
+
+		-- Update leaderstats Rebirths value
+		local leaderstats = plr:FindFirstChild("leaderstats")
+		if leaderstats then
+			local rebirthsValue = leaderstats:FindFirstChild("Rebirths")
+			if rebirthsValue then
+				rebirthsValue.Value = PlayersStats[plr].Rebirth
+			end
+		end
+
+		-- Award rebirth badges
+		if _G.AwardBadge and _G.BADGE_IDS then
+			if PlayersStats[plr].Rebirth >= 1 then
+				_G.AwardBadge(plr, _G.BADGE_IDS.REBIRTH_1)
+			end
+			if PlayersStats[plr].Rebirth >= 10 then
+				_G.AwardBadge(plr, _G.BADGE_IDS.REBIRTH_10)
+			end
+			if PlayersStats[plr].Rebirth >= 25 then
+				_G.AwardBadge(plr, _G.BADGE_IDS.REBIRTH_25)
+			end
+		end
+	end
+	
+end)
+ReplicatedStorage.RE.buyItem.OnServerInvoke = function(player,lookfor,level,button)
+	--print(lookfor,level)
+	if button:FindFirstChild('PlaceHolder') then return nil end
+	local Category, Build, color = GlobalsMod.FindMod(lookfor,level)
+	
+	--print(Category,lookfor,button)
+	
+	if level > 1 then
+		--Category = Category[lookfor][level]
+	end
+	
+	if Category then
+		--print(PlayersStats[player].Money,' : ',Category.Cost)
+		--print(PlayersStats[player].Money,Category.Cost)
+		if PlayersStats[player].Money >= Category.Cost then
+			AddCashTo(player,-Category.Cost)
+			
+			local placeHolder = Instance.new('StringValue')
+			placeHolder.Name = 'PlaceHolder'
+			placeHolder.Parent = button
+			
+			game.Debris:AddItem(placeHolder,Category.Time + 10)
+			
+			return true			
+		end
+	else
+		print('Category for',lookfor,'is nil')
+	end
+	return false
+end
+
+game.ReplicatedStorage.RE.giveMoney.Event:connect(function(plr, amount)
+	local data = PlayersStats[plr]["Money"]
+	--data = data + amount
+	--PlayersStats[plr]["Money"]= data
+	--game.ReplicatedStorage.RE.changeGui:FireClient(plr,data)
+	AddCashTo(plr,amount)
+end)
+local BaseFolder = workspace.Game.Base
+local Bases = {}
+
+local info = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 0, false, 0)
+for i,v in pairs (BaseFolder.Bases:GetChildren()) do
+	Bases[v] = {Owner = nil,Capturing = {},Active = false,CapturingPercentage = 0,Base = v,CurrentCapturer = '',} -- Active does nothing atm
+end
+
+local function CheckOwnerForBase(actualBase,Player)
+	if Bases[actualBase].Owner == Player then
+		Bases[actualBase].Owner = nil
+		Bases[actualBase].Base.Owner.Value = nil
+		
+		Bases[actualBase].Base.Banner.OwnerCircle.BrickColor = BrickColor.new('Institutional white')
+		Bases[actualBase].Active = false
+		Bases[actualBase].Base.Banner.OwnerCircle.Building.namer.Text = 'Owned By: NOBODY'
+		
+		--Bases[actualBase].CapturingPercentage = 0
+		Bases[actualBase].Base.Banner.OtherCircle.Size = Vector3.new(.4,0,0)
+		
+		local ColorChanging = Bases[actualBase].Base:FindFirstChild('House')
+		and Bases[actualBase].Base.House.ColorChanging
+		or Bases[actualBase].Base:FindFirstChild('Mine')
+		and Bases[actualBase].Base.Mine.ColorChanging
+		if ColorChanging then
+			for i,v in pairs (ColorChanging:GetChildren()) do
+				if v:IsA('BasePart') then
+					v.BrickColor = BrickColor.new('Institutional white')
+				end
+			end
+		end
+		
+		if Bases[actualBase].Base.Banner:FindFirstChild('color') then
+			for i,v in pairs (Bases[actualBase].Base.Banner.color:GetChildren()) do
+				if v:IsA('BasePart') then
+					v.BrickColor = BrickColor.new('Institutional white')
+				end
+			end
+		end
+		
+	end
+	if Bases[actualBase].CurrentCapturer == Player.Name then
+		Bases[actualBase].CurrentCapturer = ''
+	end
+end
+
+local function findinTable(player,tab)
+	for i = #tab, 1, -1 do
+		if tab[i].Who == player then
+			return true, tab[i],i
+		end
+	end
+	for i,v in pairs (tab) do
+		if v == player then
+			return true
+		end
+	end
+	return false
+end
+
+local function updateTable(Player,actualBase,toggle,option)
+	
+	if actualBase == nil then
+		
+		for base,tab in pairs (Bases) do
+			for i = #tab.Capturing,1,-1 do
+				--print(tab.Capturing[i].Amount)
+				if tab.Capturing[i].Who == Player then
+					actualBase = base
+					break
+					--table.remove(tab.Capturing,i)
+				end
+			end
+		end
+		
+	end
+	
+	if actualBase ~= nil then
+		local found,tab,pos = findinTable(Player,Bases[actualBase].Capturing)
+		local amt = toggle == true and 1 or toggle == false and -1
+		if found then
+			tab.Amount = tab.Amount + amt
+		elseif not found and toggle == true then
+			local new = {Who = Player, Amount = 1}
+			table.insert(Bases[actualBase].Capturing,new)
+		end
+		
+--		for i,v in pairs (Bases[actualBase].Capturing) do
+--			print(i,v)
+--			for a,b in pairs (v) do
+--				print(a,b)
+--			end
+--		end
+		
+		if tab then
+			if tab.Amount == 0 then
+				table.remove(Bases[actualBase].Capturing,pos)
+			end
+		end
+		
+		if option ~= nil and option == 'ALL' then -- this only fires when the player is capturing their own thing
+			table.remove(Bases[actualBase].Capturing,pos)
+			
+			CheckOwnerForBase(actualBase,Player)
+		end
+		
+		local AmountTryingToCapture = #Bases[actualBase].Capturing
+		
+		if AmountTryingToCapture >=1 then
+			--Player,
+			Bases[actualBase].Active = true
+		else
+			--Player,
+			Bases[actualBase].Active = false
+		end
+		
+		--print(AmountTryingToCapture,'HERE1')
+		--print(tab.Amount,'HERE2')
+	end
+end
+
+Remotes.StartCapturing.OnServerEvent:Connect(function(Player,interactive,toggle)
+	
+	if interactive == nil then return end
+	
+	local actualBase = BaseFolder.Bases:FindFirstChild(interactive.Name)
+	
+	if actualBase then
+		
+		updateTable(Player,actualBase,toggle)
+		
+	end	
+	
+end)
+
+Remotes.RemoveTroop.OnServerEvent:Connect(function(Player,Troop)
+	
+--	for i,v in pairs () do
+--		
+--	end
+	
+	updateTable(Player,nil,false) -- COMPLETELY SET THIS UP
+	
+end)
+
+local HowFast = SettingsMod.CapturPointTime
+local HowFast2 = SettingsMod.OtherPointTime
+
+local function TweenSize(setBase)
+	local mSi = Bases[setBase].Base.Banner.OwnerCircle.Size
+	local cSi = Bases[setBase].Base.Banner.OtherCircle.Size
+	
+	local x = .2
+	local y = mSi.Y * (Bases[setBase].CapturingPercentage / 100)
+	local z = mSi.Z * (Bases[setBase].CapturingPercentage / 100)
+	
+	local size = Vector3.new(x,y,z)
+	local tween = TweenService:Create(Bases[setBase].Base.Banner.OtherCircle, info, {Size = size})
+	tween:Play()
+end
+
+local function GivePercentage(setBase,product,Capturer)
+		
+	Bases[setBase].CapturingPercentage = product
+	if GlobalsMod.ColorsTab[Capturer.Who.Name] then
+		Bases[setBase].Base.Banner.OtherCircle.BrickColor = GlobalsMod.ColorsTab[Capturer.Who.Name] --Capturer.Who.TeamColor
+	else
+		print('Here')
+	end
+	
+	if setBase.Name == 'CapturePoint' then
+		if Bases[setBase].Owner ~= nil then
+			if Capturer.Who.Name == Bases[setBase].Owner then
+			Remotes.ForcedTarget:FireClient(Bases[setBase].Owner,nil)
+			end
+			--print('ForceTarget Removed')
+		end
+	end
+	
+	TweenSize(setBase)
+	Bases[setBase].CurrentCapturer = Capturer.Who
+end
+
+local function TakePercentage(setBase) -- this needs to be set up properly 
+	local speed = 10
+	if setBase.Name == 'CapturePoint' then
+		speed = HowFast
+	else
+		speed = HowFast2
+	end
+	local remaining = Bases[setBase].CapturingPercentage - (100/speed)
+	if remaining < (100/speed) then
+		if setBase.Name == 'CapturePoint' then
+			if Bases[setBase].Owner ~= nil then
+				Remotes.ForcedTarget:FireClient(Bases[setBase].Owner,nil)
+				
+				--print('ForceTarget Removed')
+			end
+		end
+		Bases[setBase].CapturingPercentage = 0
+		Bases[setBase].CurrentCapturer = ''
+		delay(1,function()
+			Bases[setBase].Base.Banner.OtherCircle.Size = Vector3.new(.4,0,0)
+		end)
+	else
+		Bases[setBase].CapturingPercentage = remaining
+	end
+		
+	local mSi = Bases[setBase].Base.Banner.OwnerCircle.Size
+	
+	if Bases[setBase].CapturingPercentage ~= 0 then -- make sure this is okay
+		
+		TweenSize(setBase)
+	
+	end
+end
+
+local GoneThroughLoop = 0
+
+local function RewardOwner(base)
+	local Owner = base:FindFirstChild('Owner') --Bases[base].Owner
+	if Owner and Owner.Value ~= nil then
+		--print(base.Name)
+		if base.Name == 'CapturePoint' then
+			AddCashTo(Owner.Value,SettingsMod.OwnerRewardAmount)
+		else
+			AddCashTo(Owner.Value,SettingsMod.GoldMineRewardAmount)
+		end
+		--print(Owner.Value.Name,'Rewarded for',base)
+	else
+		--print(base,'No owner')
+	end
+end
+local function checkBases()
+	while true do
+		wait(1)
+		for i,setBase in pairs (BaseFolder.Bases:GetChildren()) do
+			if GoneThroughLoop >= SettingsMod.OwnerRewardTime then
+				spawn(function()
+					for _,v in pairs (BaseFolder.Bases:GetChildren()) do
+						RewardOwner(v)
+					end
+				end)
+				GoneThroughLoop = 0
+			end
+			--wait()
+			local NumTryingCapture,Capturer = #Bases[setBase].Capturing,Bases[setBase].Capturing[1] -- May wanna do the whole size thing locally! (it'll make it more smooth)
+			if NumTryingCapture == 1 then
+				local speed = 10
+				if setBase.Name == 'CapturePoint' then
+					speed = HowFast
+				else
+					speed = HowFast2
+				end
+				local remaining = Bases[setBase].CapturingPercentage + (100/speed)
+				local product = 0
+				if remaining > 100 then
+					product = 100
+				
+					if Bases[setBase].CapturingPercentage == 100 and Bases[setBase].CurrentCapturer == Capturer.Who then
+						local Owner = Capturer.Who
+						-- Ищи этот блок в своей функции checkBases:
+						if PlayersService:FindFirstChild(Owner.Name) then
+							Bases[setBase].Owner = Owner
+
+							-- --- ВСТАВЬ ЭТУ СТРОКУ СЮДА ---
+							if _G.AwardBadge then _G.AwardBadge(Owner, _G.BADGE_IDS.KING_OF_HILL) end
+							-- -----------------------------
+
+							Bases[setBase].Base.Banner.OwnerCircle.BrickColor = GlobalsMod.ColorsTab[Owner.Name]
+							Bases[setBase].Active = false
+							Bases[setBase].Base.Banner.OwnerCircle.Building.namer.Text = 'Owned By: ' .. string.upper(Owner.Name)
+
+							Bases[setBase].Base.Owner.Value = Owner
+
+							if setBase.Name == 'CapturePoint' then
+								Remotes.NotifyPlayer:FireAllClients(Owner.Name.. ' is the King of the Hill!')
+								Remotes.ForcedTarget:FireClient(Owner,nil)
+							else
+								Remotes.NotifyPlayer:FireClient(Owner, 'City Captured!', 5)
+							end
+							
+							
+							Bases[setBase].CapturingPercentage = 0
+							Bases[setBase].Base.Banner.OtherCircle.Size = Vector3.new(.4,0,0)
+							
+							local ColorChanging = Bases[setBase].Base:FindFirstChild('House')
+							and Bases[setBase].Base.House.ColorChanging
+							or Bases[setBase].Base:FindFirstChild('Mine')
+							and Bases[setBase].Base.Mine.ColorChanging
+							if ColorChanging then
+								for i,v in pairs (ColorChanging:GetChildren()) do
+									if v:IsA('BasePart') then
+										v.BrickColor = GlobalsMod.ColorsTab[Owner.Name]--Owner.TeamColor
+									end
+								end
+							end
+							
+							if Bases[setBase].Base.Banner:FindFirstChild('color') then
+								for i,v in pairs (Bases[setBase].Base.Banner.color:GetChildren()) do
+									if v:IsA('BasePart') then
+										v.BrickColor = GlobalsMod.ColorsTab[Owner.Name]
+									end
+								end
+							end
+	
+							
+						else
+							--print(Owner.Name,'Has left the game')
+						end
+						
+						if Bases[setBase].CurrentCapturer == Owner.Name then
+							Bases[setBase].CurrentCapturer = ''
+						end
+						
+					elseif Bases[setBase].CurrentCapturer ~= Capturer.Who then
+						
+						--print('RIGHT HERE')
+						
+					end
+					
+					
+				else
+					product = remaining
+				end
+				
+				if Capturer.Who ~= Bases[setBase].Owner then
+					if Bases[setBase].CurrentCapturer == '' or Bases[setBase].CurrentCapturer == Capturer.Who then
+						GivePercentage(setBase,product,Capturer)
+						if setBase.Name == 'CapturePoint' then
+							local interactive = workspace.Game.Base.Interactives:FindFirstChild(setBase.Name)
+							if interactive then
+								if Bases[setBase].Owner ~= nil then
+									Remotes.ForcedTarget:FireClient(Bases[setBase].Owner,interactive)
+								end
+							end
+						end
+					else
+						TakePercentage(setBase)
+					end
+				elseif Bases[setBase].CapturingPercentage ~= 0 then
+					TakePercentage(setBase)
+				end
+			elseif NumTryingCapture <=0 then
+				TakePercentage(setBase)
+			end
+		--print(Bases[setBase].CapturingPercentage)
+		end
+		
+		GoneThroughLoop = GoneThroughLoop + 1
+	end
+end
+
+spawn(checkBases)
+
+local function AddHeroTo(Player,Hero,Name)
+	if HeroesMod[Hero] then
+		local Data = PlayersStats[Player]
+		if Data then
+			local sameName = false
+			for i,v in pairs (Data.Heroes) do
+				if v.name == Name then
+					sameName = true
+					break
+				end
+			end
+			if sameName then
+				return false,'SameName'
+			else
+				--PlayersStats[Player].Heroes[Name]
+				local heroTable = {name = Name}
+				table.insert(PlayersStats[Player].Heroes,heroTable)
+				return true
+			end
+		end
+	end
+end
+
+local function PurchaseHero(Player,Hero)
+	if HeroesMod[Hero] then
+		local Data = PlayersStats[Player]
+		if Data then
+			if #Data.Heroes < Data.MaxHeroAmount then
+				if PlayersStats[Player]['Money'] >= HeroesMod[Hero].Cost then
+					PlayersStats[Player]['Money'] = PlayersStats[Player]['Money'] - HeroesMod[Hero].Cost
+					AddCashTo(Player,PlayersStats[Player]['Money'])
+					--print(PlayersStats[Player]['Money'])
+					return true
+				else
+					return false,'InsufficientFunds'
+				end
+			else
+				return false,'Full'
+			end
+		else
+			return false,'Data = nil'
+		end
+	else
+		return false,'Heros mode for ' .. Hero..' Is not found'
+	end
+	return false
+end
+
+Remotes.PurchaseHero.OnServerInvoke = function(Player,Hero)
+		
+	return PurchaseHero(Player,Hero)
+	
+end
+
+local TextService = game:GetService('TextService')
+local function getTextObject(message, playerId)
+	local textObject
+	local success, errorMessage = pcall(function()
+		textObject = TextService:FilterStringAsync(message, playerId)
+	end)
+	if success then
+		return textObject
+	elseif errorMessage then
+		print("Error generating textObject")
+	end
+	return false
+end
+
+local function FilterName(text,playerID)
+	local filtered = nil
+	local success, reasoning = pcall(function()
+		filtered = text:GetNonChatStringForUserAsync(playerID)
+	end)
+	if success then
+		return filtered
+	else
+		print('Error filtering name',reasoning)
+	end
+	return false, reasoning
+end
+
+Remotes.CheckHeroName.OnServerInvoke = function(Player,Name,Hero)
+	local messageObject = getTextObject(Name, Player.UserId)
+	local filteredName,reasoning = FilterName(messageObject,Player.UserId)
+	--print(filteredName)
+	if string.find(filteredName,'#') then
+		return false,'NameNotAccepted'
+	else
+		local success,NameNotAccepted = AddHeroTo(Player,Hero,filteredName)
+		if success then
+			return true
+		else
+			return false,NameNotAccepted
+		end
+	end
+end
+
+game.ReplicatedStorage.RE.getMainData.OnServerInvoke = function (plr)
+	repeat wait() until PlayersStats[plr]
+	local data = PlayersStats[plr]
+	return data
+end
+game.ReplicatedStorage.RE.getMainData2.OnInvoke = function (plr)
+	repeat wait() until PlayersStats[plr]
+	local data = PlayersStats[plr]
+	return data
+end
+-- Removed dangerous returnMaindata handler that allowed client to overwrite server data
+
+MarketplaceService.ProcessReceipt = function(receiptInfo)
+	local ProductId = receiptInfo.ProductId
+	local PlayerId = receiptInfo.PlayerId
+	local Player = PlayersService:GetPlayerByUserId(PlayerId)
+	
+	if not Player then
+		print('Not processed yet')
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	
+	if ProductId == MissilesMod.Nuke.Id then
+		Remotes.ActivateMissile:FireClient(Player,'Nuke')
+	end
+	
+	
+	for amt,id in pairs (SettingsMod.Products.Money) do
+		if ProductId == id then
+				AddCashTo(Player,amt)
+			break
+		end
+	end
+	
+	return Enum.ProductPurchaseDecision.PurchaseGranted
+end
+
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local PlayersPurchasedPasses = {}
+ 
+local function gamepassPurchaseFinished(player,id,success)
+	
+	if PlayersPurchasedPasses[player] == nil then
+		PlayersPurchasedPasses[player] = {}
+	end
+	
+	if success then
+		
+		
+		table.insert(PlayersPurchasedPasses[player],id)
+		
+		if id == SettingsMod.Gamepasses.DoubleUnits then
+			local Max = ReplicatedStorage.RE.GetMaxUnits:Invoke(player)
+			game.ReplicatedStorage.RE.UpdateMaxUnits:FireClient(player,Max)
+		end
+	end
+	
+	--for i,v in pairs (PlayersPurchasedPasses[player]) do
+		--print(i,v)
+	--end
+	
+end
+ 
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(gamepassPurchaseFinished)
+
+Remotes.GetPurchasedPasses.OnInvoke = function(player,passId)
+	
+	local owned = false
+	
+	if PlayersPurchasedPasses[player] then
+		for i,v in pairs (PlayersPurchasedPasses[player]) do
+			if v == passId then
+				owned = true
+				break
+			end
+		end
+	elseif passId >0 then
+		owned = MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
+		if owned == true then 
+			if PlayersPurchasedPasses[player] == nil then
+				PlayersPurchasedPasses[player] = {}
+			end
+			table.insert(PlayersPurchasedPasses[player],passId)
+		end
+	end
+	
+	return owned
+	
+end
+
+local function savePlayerData(plr,data)
+	if data ~= false then
+		local success, err = pcall(function()
+			PlayerDataStore:SetAsync(plr.UserId,data)
+		end)
+		if not success then
+			warn("Cannot save data for player due to '" .. err .. "'")
+		end
+	else
+		print(plr.Name .. "'s Data is false, NOT SAVING DATA")
+	end
+end
+
+game.Players.PlayerRemoving:Connect(function(plr)
+	
+	local data = PlayersStats[plr]
+	if PlayersStats[plr]  then
+		--PlayerDataStore:SetAsync(plr.UserId,data)
+		savePlayerData(plr,data)
+		PlayersStats[plr] = nil
+	end
+	
+	RemoveSpawner(plr)
+	
+	for i,v in pairs (GlobalsMod.ColorsTab) do
+		if i == plr.Name then
+			GlobalsMod.ColorsTab[plr.Name] = nil
+		end
+	end
+	
+	for i,setBase in pairs (BaseFolder.Bases:GetChildren()) do
+		wait()
+		CheckOwnerForBase(setBase,plr)
+		updateTable(plr,nil,false,'ALL')
+	end
+	
+	for i,v in ipairs(workspace.Game.Buttons:GetChildren()) do
+		if v.Name == plr.Name then
+			v.Name = "tycoon"
+			for i,c in ipairs(v:GetChildren()) do
+				c.Transparency = 1
+				c.Icon.Transparency = 1
+				if c:FindFirstChildOfClass("Model") then
+					c:FindFirstChildOfClass("Model"):Destroy()
+				end
+				if c:FindFirstChild("FlagIdentifier") then --DELETE FLAG
+					c:FindFirstChild("FlagIdentifier"):Destroy()
+				end
+				c.BrickColor = BrickColor.new("Mid gray")
+			end
+		end
+	end
+	
+	for i,v in pairs (workspace.Game.Units:GetChildren()) do
+		if v.Name == plr.Name then
+			v:Destroy()
+		end
+	end
+	
+	if PlayersPurchasedPasses[plr] then
+		PlayersPurchasedPasses[plr] = nil
+	end
+	
+end)
+
+local function checkBlackListFor(name)
+	
+	for i,v in pairs (GlobalsMod.BlackListedBuildingTypes) do
+		if v == name then
+			return true
+		end
+	end
+	
+	return false
+	
+end
+
+Remotes.AddButtonSave.Event:Connect(function(player,buttonName,buildingName,option)
+	local BlacklistFound = checkBlackListFor(buildingName)
+	if not BlacklistFound then
+		--print(buildingName,'Was not found in blacklist, saving')
+		PlayersStats[player].Buildings[buttonName] = {Building = buildingName, Option = option}
+	else
+		--print(buildingName,'was found in the blacklist, not saving')
+	end
+
+end)
+
+Remotes.RemoveButtonSave.Event:Connect(function(player,buttonName)
+	PlayersStats[player].Buildings[buttonName] = nil
+end)
+
+local function LoopSaveData()
+	while true do
+		wait(SettingsMod.AutosaveInterval)
+		for i,v in ipairs(game.Players:GetPlayers()) do
+			if PlayersStats[v] then
+				savePlayerData(v,PlayersStats[v])
+				Remotes.NotifyOfGameSave:FireClient(v)
+			end
+		end
+	end
+end
+
+game.ReplicatedStorage.RE.BuyTurretRE.OnInvoke = function(player,turret)
+	local Turret = workspace.Turrets:FindFirstChild(turret)
+	local linkedAsset = game.Workspace.Game.Base.Bases:FindFirstChild(Turret.Data.LinkedAsset.Value)
+	if Turret.Data.Owner.Value == '' then
+		if linkedAsset.Owner.Value == player then
+			if PlayersStats[player].Money > 300 then
+				AddCashTo(player,-300)	
+				Turret.Data.Owner.Value = player.Name
+				warn("success")
+				return true
+			end
+		end
+	end
+end
+
+game.ReplicatedStorage.RE.BuyArtilleryRE.OnInvoke = function(player,Artillery)
+	local Artillery = workspace.Artillery:FindFirstChild(Artillery)
+	local linkedAsset = game.Workspace.Game.Base.Bases:FindFirstChild(Artillery.Data.LinkedAsset.Value)
+	warn(Artillery.Data.Owner.Value)
+	if Artillery.Data.Owner.Value == "" then
+		warn("1")
+		if linkedAsset.Owner.Value == player then
+			warn("2")
+			if PlayersStats[player].Money > 500 then
+				AddCashTo(player,-500)	
+				Artillery.Data.Owner.Value = player.Name
+				warn("success")
+				return true
+			end
+		end
+	end
+end
+
+
+game.ReplicatedStorage.RE.PurchaseAirstrike.OnServerInvoke = function(player,Type)
+	local module = require(game.ReplicatedStorage.Modules.Missiles)
+	local mod = module[Type]
+	if PlayersStats[player].Money >= mod.Cost then
+		AddCashTo(player,-mod.Cost)
+		return true, mod.Name
+	else
+		return false,nil,'Not enough'
+	end
+end
+
+game.ReplicatedStorage.RE.ClearData.OnServerEvent:Connect(function(player)
+	PlayersStats[player] = {
+			Money = SettingsMod.StartingCash,
+			XP = 0,
+			UnlockedColors = {},
+			Buildings = {},
+			BannerColor = {},
+			Upgrades = {},
+			Rebirth = 0,
+		}
+	-- Update leaderstats Rebirths value
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if leaderstats then
+		local rebirthsValue = leaderstats:FindFirstChild("Rebirths")
+		if rebirthsValue then
+			rebirthsValue.Value = 0
+		end
+	end
+	Remotes.changeGui:FireClient(player,PlayersStats[player]['Money'])
+	for i,v in pairs(workspace.Game.Units[player.Name]:GetChildren())do
+		v:Destroy()
+	end
+	local Buttons = workspace.Game.Buttons[player.Name]:GetChildren()
+	for i,v in pairs(Buttons)do
+		game.ReplicatedStorage.RE.Relinquish:Fire(player,v,true,true)
+	end
+	player:LoadCharacter()
+end)
+
+spawn(LoopSaveData)
