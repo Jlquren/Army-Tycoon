@@ -1,0 +1,11 @@
+local flagData = {}
+game.ReplicatedStorage.RE.setFlag.OnServerEvent:connect(function(plr, ID) 
+	local plate = workspace.Game.Buttons:WaitForChild(plr.Name)
+	flagData[plr.Name] = ID
+	local Nation = game.ReplicatedStorage.Elements.FlagIdentifier:Clone()
+	Nation.ImageLabel.Image = ID
+	Nation.Parent = plate[1]
+end)
+game.ReplicatedStorage.RE.fetchFlag.OnInvoke = function (plr) 
+	return flagData[plr.Name]
+end
