@@ -1,0 +1,16 @@
+local MarketplaceService = game:GetService("MarketplaceService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PurchaseEvent = ReplicatedStorage:WaitForChild("PurchaseEvent")
+local ItemConfig = require(ReplicatedStorage:WaitForChild("ItemConfig"))
+
+MarketplaceService.ProcessReceipt = function(receiptInfo)
+	local player = game.Players:GetPlayerByUserId(receiptInfo.PlayerId)
+	local productName = ItemConfig.Products[receiptInfo.ProductId] or "Item"
+
+	if player then
+		PurchaseEvent:FireAllClients(player.Name, productName)
+
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+	return Enum.ProductPurchaseDecision.NotProcessedYet
+end
