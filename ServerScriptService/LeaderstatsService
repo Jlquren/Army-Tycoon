@@ -1,0 +1,53 @@
+local Players = game:GetService("Players")
+local BadgeService = game:GetService("BadgeService")
+
+local BADGE_IDS = {
+	JOIN = 2152754016,
+	REBIRTH_1 = 3939249342122237,
+	REBIRTH_10 = 3564852814880651,
+	REBIRTH_25 = 3933047234049473,
+	DEV_MEET = 817803823364445,
+	KING_OF_HILL = 4335068127278835
+}
+
+local function AwardBadge(player, badgeId)
+	if not player or not player:IsA("Player") then return end
+	local success, hasBadge = pcall(function()
+		return BadgeService:UserHasBadgeAsync(player.UserId, badgeId)
+	end)
+	if success and not hasBadge then
+		BadgeService:AwardBadgeAsync(player.UserId, badgeId)
+	end
+end
+
+_G.AwardBadge = AwardBadge
+_G.BADGE_IDS = BADGE_IDS
+
+local function onPlayerAdded(player)
+	local leaderstats = Instance.new("Folder")
+	leaderstats.Name = "leaderstats"
+	leaderstats.Parent = player
+
+	local rebirths = Instance.new("IntValue")
+	rebirths.Name = "Rebirths"
+	rebirths.Value = 0
+	rebirths.Parent = leaderstats
+
+	AwardBadge(player, BADGE_IDS.JOIN)
+	if player.UserId == 1825209931 then
+		AwardBadge(player, BADGE_IDS.DEV_MEET)
+	end
+
+	spawn(function()
+		while not (_G.PlayersStats and _G.PlayersStats[player]) do
+			wait(1)
+		end
+		local stats = _G.PlayersStats[player]
+		rebirths.Value = stats.Rebirth
+		if stats.Rebirth >= 1 then AwardBadge(player, BADGE_IDS.REBIRTH_1) end
+		if stats.Rebirth >= 10 then AwardBadge(player, BADGE_IDS.REBIRTH_10) end
+		if stats.Rebirth >= 25 then AwardBadge(player, BADGE_IDS.REBIRTH_25) end
+	end)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
