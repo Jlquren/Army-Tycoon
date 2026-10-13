@@ -1,0 +1,119 @@
+
+local MarketplaceService = game:GetService('MarketplaceService')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+
+local Modules = ReplicatedStorage.Modules
+
+local SettingsMod = require(Modules.Settings)
+
+local function doit(plr,v,bypass)
+	if v.Transparency < 1 then
+		v.Transparency = 1
+		v.Icon.Transparency = 1 
+		game.ReplicatedStorage.RE.clickButton:FireClient(plr, v, v.Class.Value, 1,bypass)
+		wait(1)
+	end
+end
+
+for _,tycoon in pairs (script.Parent:GetChildren()) do
+	if tycoon:IsA('Folder') then
+		
+		for _,button in pairs (tycoon:GetChildren()) do
+			
+			if button.Name ~= '1' then
+				button.Transparency = 1
+				button.Icon.Transparency = 1
+				if button:FindFirstChild('destroyed') then
+					button.destroyed.Transparency = 1
+				end
+				button.ClickDetector.MaxActivationDistance = 0
+			end
+			
+			button.ClickDetector.MouseClick:Connect(function(player)
+				if player.Name == tycoon.Name then
+					
+					if button.Transparency ~= 1 then
+						
+						if button.Material == Enum.Material.Neon then
+							local id = SettingsMod.Products.Buttons[button.Class.Value.Name]
+							
+							if id then
+								if id > 0 then
+									local connection = nil
+									connection = MarketplaceService.PromptProductPurchaseFinished:Connect(function(_,productID,purchased)
+										if purchased then
+											doit(player,button,true)
+										else
+											
+										end
+										
+										connection:Disconnect()
+									end)
+									MarketplaceService:PromptProductPurchase(player,id)
+								else
+									print('SettingsMod.Produts.Buttons.'..button.Class.Value.Name,' needs to be over 0')
+								end
+								
+							else
+								
+								print('YOU MUST HAVE VALID ID FOR THIS BUTTON TO WORK',button.Name)
+								
+							end
+								
+						else
+							doit(player,button)
+						end
+						
+					end
+					
+				end
+			end)
+		end
+		
+		local player = game.Players:FindFirstChild(tycoon.Name)
+		if player then-- print('Player found')
+			game.ReplicatedStorage.RE.CheckButtons :Fire(player,tycoon)
+		end
+	end
+end
+
+--for i,player in pairs (game.Players:GetPlayers()) do
+--	game.ReplicatedStorage.RE.CheckButtons :Fire(player,v)
+--end
+
+--[[for i,v in ipairs(script.Parent:GetDescendants()) do
+	if v:IsA("BasePart") then
+		v.ClickDetector.MouseClick:Connect(function(plr)
+			if v.Material == Enum.Material.Neon then
+				local id = SettingsMod.Products.Buttons[v.Class.Value.Name]
+				
+--				for i,v in pairs (SettingsMod.Products.Buttons) do
+--					print(i,v)
+--				end
+				
+				if id then
+					if id > 0 then
+						local connection = nil
+						connection = MarketplaceService.PromptProductPurchaseFinished:Connect(function(_,productID,purchased)
+							if purchased then
+								doit(plr,v)
+							else
+								
+							end
+							
+							connection:Disconnect()
+						end)
+						MarketplaceService:PromptProductPurchase(plr,id)
+					else
+						--print('SettingsMod.Produts.Buttons.'..v.Class.Value.Name,' needs to be over 0')
+					end
+				else
+					print('No id for',v.Class.Value)
+				end
+			else
+				doit(plr,v)
+			end
+			
+		end)
+	end
+end]]
