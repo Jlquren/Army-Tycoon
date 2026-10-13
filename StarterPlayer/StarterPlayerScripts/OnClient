@@ -1,0 +1,35 @@
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local plr = game.Players.LocalPlayer
+
+ReplicatedStorage.RE.StartFarmTimer.OnClientEvent:Connect(function(prod,billboard,but,build)
+	
+	local value = prod
+	for i = 1, prod do
+		wait(1)
+		value = value - 1
+		
+		local minutes = math.floor(value / 60)
+		local seconds = nil
+		if value % 60 < 10 then
+			seconds = '0' .. (value % 60)
+		else
+			seconds = value % 60
+		end
+		
+		billboard.namer.Text = minutes..':'..seconds
+		
+		--billboard.namer.Text = value
+		if but == nil then break end
+	end
+	
+	--sound:Play()
+	if but ~= nil and build ~= nil then
+		ReplicatedStorage.RE.DemolishFarm:FireServer(but,build)
+	elseif build == nil then
+		--print('Build ended up being nil')
+	end
+end)
+
+ReplicatedStorage.RE.ActivateBeam.OnClientEvent:Connect(function(beam)
+	beam.Enabled = true
+end)
