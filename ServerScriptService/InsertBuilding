@@ -1,0 +1,208 @@
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+
+local Modules = ReplicatedStorage.Modules
+
+local GlobalsMod = require(Modules.Globals)
+
+
+local function CheckBlacklistForName(name)
+	for i,v in pairs (GlobalsMod.BlackListedBuildingTypes) do
+		if v == name then
+			return true
+		end
+	end
+	
+	return false
+end
+
+local function GetNumbers(String)
+    return string.match(String,"%d+")
+end
+
+local function SpawnButtons(plr,button,visible)
+	local buttonNum = tonumber(GetNumbers(button.Name))
+	if buttonNum == 1 and visible == false then
+		plr.CharacterAdded:wait()
+		local beam = game.ReplicatedStorage.Effects.FirstBeam:Clone()
+		beam.Parent = button
+		local attachment0 = Instance.new("Attachment", button)
+		attachment0.WorldCFrame = button.CFrame
+		local attachment1 = Instance.new("Attachment", plr.Character:WaitForChild("HumanoidRootPart"))
+		attachment1.WorldCFrame = plr.Character.HumanoidRootPart.CFrame
+		beam.Attachment0 = attachment0
+		beam.Attachment1 = attachment1
+		ReplicatedStorage.RE.ActivateBeam:FireClient(plr,beam)
+	elseif buttonNum == 1 and visible ~= false then
+		if button:FindFirstChild('FirstBeam') then
+			local beam = button:FindFirstChild('FirstBeam')
+			beam:Destroy()
+		end
+	end
+	local buttons = workspace.Game:WaitForChild("Buttons"):FindFirstChild(plr.Name)
+	for i,v in pairs (buttons:GetChildren()) do
+		local vNum = tonumber(GetNumbers(v.Name))
+		if vNum <= 1  then
+			if v.Name == '1' then
+				local model = button:FindFirstChildOfClass('Model')
+				if model then
+					if v:FindFirstChild('FirstBeam') then
+						v.FirstBeam:Destroy()
+						--print('Beam destroyed')
+					end
+				end
+				
+			end
+		end
+		
+		if vNum and buttonNum then
+			
+			--print(vNum,' : ',buttonNum)
+			if vNum == buttonNum or vNum == (buttonNum + 1) or tonumber(v.Name) == (buttonNum + 1) then
+				--print(v.Name,'should spawn')
+				
+				if v:FindFirstChildOfClass('Model') then
+					v.Transparency = 1
+					v.Icon.Transparency = 1
+					if v:FindFirstChild('destroyed') then
+						v.destroyed.Transparency = .8
+					end
+					v.ClickDetector.MaxActivationDistance = 60
+				elseif not v:FindFirstChild('PlaceHolder') then
+					v.Transparency = 0
+					v.Icon.Transparency = 0
+					if v:FindFirstChild('destroyed') then
+						v.destroyed.Transparency = .8
+					end
+					v.ClickDetector.MaxActivationDistance = 60
+				else
+					--print(button,'Button, has a placeholder')
+				end
+				
+			else
+				--print(v.Name,'Wont spawn')
+			end
+			
+		else
+			
+			--print('NO,',v.Name,'HERE')
+		
+		end
+		
+	end
+		
+		
+end
+
+local function AddBuilding(plr,building,button)
+	local build = building:Clone()
+	
+	for i,v in pairs (build:GetChildren()) do
+		if v.Name == 'COLOR' then
+			v.BrickColor = GlobalsMod.ColorsTab[plr.Name]
+		end
+	end
+	
+	for i,v in pairs (build:GetDescendants()) do
+		if v:IsA('BasePart') then
+			v.CanCollide = false
+		end
+	end
+	
+	build.Parent = button
+	
+	build:SetPrimaryPartCFrame(button.CFrame * CFrame.Angles(0, 0, math.rad(90)))
+	
+	--local stats = build:FindFirstChild('Folder')
+	
+	
+	local stats,buildOption = GlobalsMod.FindMod(building.Parent.Name,building.Name)
+	
+	if stats.Production then
+		--print('Production found')
+		local gui = ReplicatedStorage.Elements.Building:Clone()--build.PrimaryPart:FindFirstChild('Building')
+		gui.Parent = build.PrimaryPart
+		ReplicatedStorage.RE.StartFarmTimer:FireClient(plr,stats.Production,gui,button,build)
+		--print('Production value set to',stats.Production)
+	end
+	
+	game.ReplicatedStorage.RE.AddButtonSave:Fire(plr,button.Name,building.Parent.Name,building.Name)
+	
+	if plr then
+		local Max = ReplicatedStorage.RE.GetMaxUnits:Invoke(plr)
+		game.ReplicatedStorage.RE.UpdateMaxUnits:FireClient(plr,Max)
+	end
+	
+	if stats then
+		if stats.Income and stats.Income > 0 then
+			local emitter = ReplicatedStorage.Effects.Income:Clone()
+			emitter.Parent = build.PrimaryPart
+		elseif stats.Unit then
+			local emitter = game.ReplicatedStorage.Effects.Training:Clone()
+			emitter.Parent = build.PrimaryPart
+		end
+		
+	else
+		print('There are no stats for',button.Parent.Name..'['..button.Name..']')
+	end
+	
+	button.Transparency = 1
+	button.Icon.Transparency = 1
+	if button:FindFirstChild('destroyed') then
+		button.Transparency = 1
+	end
+	button.ClickDetector.MaxActivationDistance = 60
+	
+	local placeHolder = button:FindFirstChild('PlaceHolder')
+	
+	if placeHolder then
+		placeHolder:Destroy()
+	end
+	--print('Button set back to 1',button.Name)
+	
+	--local fulNumber = tonumber(button.Name)
+	--if fulNumber then
+		SpawnButtons(plr,button)
+	--end
+	
+end
+
+game.ReplicatedStorage.RE.CheckButtons.Event:Connect(function(Player,Buttons)
+	--local Buttons = workspace.Game.Buttons:WaitForChild(Player.Name)
+	--print('Now')
+	SpawnButtons(Player,Buttons['1'],false)
+end)
+
+local function Relinquish(player,button,build)
+	local model = button:FindFirstChildOfClass('Model')
+	if model then
+		if model == build then
+			game.ReplicatedStorage.RE.RemoveButtonSave:Fire(player,button.Name)
+			button.Transparency = 0
+			button.Icon.Transparency = 0
+			if button:FindFirstChildOfClass("Model") then
+				button:FindFirstChildOfClass("Model"):Destroy()
+			end
+			--print(button.Name,'Destroyed')--, maybe check and see if the model is the same???
+		else
+			--print(model,'Different',build)
+		end
+	else
+		--print('Model is nil')
+	end
+end
+
+ReplicatedStorage.RE.DemolishFarm.OnServerEvent:Connect(function(player,button,build)
+	if button then
+		Relinquish(player,button,build)
+	end
+end)
+
+game.ReplicatedStorage.RE.insertBuilding.OnServerEvent:connect(function(plr, building, button)
+	AddBuilding(plr, building, button)
+end)
+
+game.ReplicatedStorage.RE.AddBuilding.Event:Connect(function(plr,building,button)
+	button.Transparency = 1
+	button.Icon.Transparency = 1
+	AddBuilding(plr,building,button)
+end)
