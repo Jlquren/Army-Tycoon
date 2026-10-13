@@ -1,0 +1,23 @@
+function AttemptBuyArtillery(player,Artillery)
+	if game.ReplicatedStorage.RE.BuyArtilleryRE:Invoke(player,Artillery) then
+		wait(.5)
+		for i=0,44 do 
+			game.Workspace.Artillery[Artillery]:SetPrimaryPartCFrame(game.Workspace.Artillery[Artillery].Part.CFrame *CFrame.Angles(0,math.rad(4),0))
+			wait()
+		end
+	end
+end
+
+for _,v in pairs(workspace.Artillery:GetChildren()) do
+	v.Part.ClickDetector.MouseClick:Connect(function(player)
+		AttemptBuyArtillery(player,v.Name)
+	end)
+	
+	local originalCFrame = v:GetPrimaryPartCFrame()
+	
+	local assignedBase = game.Workspace.Game.Base.Bases[v.Data.LinkedAsset.Value]
+	assignedBase.Owner.Changed:Connect(function()
+		v.Data.Owner.Value = ''
+		v:SetPrimaryPartCFrame(originalCFrame)
+	end)
+end
