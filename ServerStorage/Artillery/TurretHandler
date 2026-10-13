@@ -1,0 +1,23 @@
+function AttemptBuyTurret(player,Turret)
+	if game.ReplicatedStorage.RE.BuyTurretRE:Invoke(player,Turret) then
+		wait(.5)
+		for i=0,44 do 
+			game.Workspace.Turrets[Turret]:SetPrimaryPartCFrame(game.Workspace.Turrets[Turret].Part.CFrame *CFrame.Angles(0,math.rad(4),0))
+			wait()
+		end
+	end
+end
+
+for _,v in pairs(workspace.Turrets:GetChildren()) do
+	v.Part.ClickDetector.MouseClick:Connect(function(player)
+		AttemptBuyTurret(player,v.Name)
+	end)
+	
+	local originalCFrame = v:GetPrimaryPartCFrame()
+	
+	local assignedBase = game.Workspace.Game.Base.Bases[v.Data.LinkedAsset.Value]
+	assignedBase.Owner.Changed:Connect(function()
+		v.Data.Owner.Value = ''
+		v:SetPrimaryPartCFrame(originalCFrame)
+	end)
+end
