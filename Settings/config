@@ -1,0 +1,51 @@
+local module = 
+
+{
+	AutosaveInterval = 120,				-- (In Seconds) How often the game saves (I would NOT recommend going lower than 180)
+	
+	StartingCash = 200,--100,					-- How much cash players start out with
+	StartingWalkspeed = 30,				-- The walkspeed players have
+	
+	PaymentTime = 20,					-- How often players get their payment
+	
+	CapturPointTime = 30,				-- Capture Point Time
+	OtherPointTime = 15,				-- Other Point Time
+	
+	OwnerRewardTime = 15,				-- How ofter Owners get rewarded for owning the banner!
+	GoldMineRewardAmount = 10,			-- How much rewarded for owning a gold mine (in the middle0
+	OwnerRewardAmount = 20,				-- How much cash Owners get for owning a banner every ['OwnerRewardTime']
+			
+	Products = 
+		{
+			MoreHeros = 0000000,				-- The product id for Purchasing more hero slots!
+			
+			
+			Money =  -- [AmountOfCash] = ID,
+				{
+					[500] = 0,
+					[1000] = 0,
+					[5000] = 0,
+					[10000] = 0,
+				},
+				
+			Buttons = --['ClassValue.Name'] = ID
+				{
+				['Missile Factory'] = 3599476080 ,
+				['Drone Factory'] = 3599474855 	,
+				},
+		},
+	
+	Gamepasses = -- GuiName = UserId
+		{
+			DoubleGold = 11183474255,
+			DoubleUnits = 11183474255,
+			
+			DesertCamo = 2029358274,
+			BlackCamo = 2028950280,
+			--BanditCamo = 3874338416,
+		},
+		
+		
+}
+
+return module
