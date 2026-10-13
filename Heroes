@@ -1,0 +1,65 @@
+local module = 
+
+{
+	['Hero1'] = 
+		{
+			Name = 'Hero1',			-- The name of the Hero
+			
+			Attack = 10,			-- How much attack the hero does
+			Defense = 25,			-- How much defense the hero does
+			
+			Speed = 10,				-- Hos much speed the hero has
+			
+			Cost = 10,				-- How much the hero costs (In game currency)
+		},
+	['Hero2'] = 
+		{
+			Name = 'Hero2',
+			
+			Attack = 5,
+			Defense = 30,
+			
+			Speed = 10,
+			
+			Cost = 25,
+		},
+	['Hero3'] = 
+		{
+			Name = 'Hero3',
+			
+			Attack = 35,
+			Defense = 5,
+			
+			Speed = 5,
+			
+			Cost = 50,
+		},
+	['Fire Mage'] = 
+		{
+			Name = 'Fire Mage',
+			
+			Attack = 15,
+			Defense = 15,
+			
+			Speed = 15,
+			
+			Robux = 30,					-- How much it cost (in Robux)
+			RobuxPos = 1, 				-- This determines where the hero will be within the other Robux costing heroes! (Basically 1 comes before two lol)
+			ProductID = 000000000,--867415406		-- This is used to determine what product is being prompt for this hero(Each Robux purchase MUST have a productID)
+		},
+	['Hero4Buck 5'] = 
+		{
+			Name = 'Hero4Buck 5',
+			
+			Attack = 20,
+			Defense = 20,
+			
+			Speed = 20,
+			
+			Robux = 50,
+			RobuxPos = 2,
+			ProductID = 000000000,
+		},
+}
+
+return module
