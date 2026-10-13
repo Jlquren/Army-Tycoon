@@ -1,0 +1,44 @@
+game.ReplicatedStorage.RE.relinquish.OnServerEvent:connect(function(plr, button, bool,destroy)
+	if button.Parent.Name == plr.Name then
+		game.ReplicatedStorage.RE.RemoveButtonSave:Fire(plr,button.Name)
+		if bool == true then
+			button.Transparency = 0
+			button.Icon.Transparency = 0
+		end
+		if destroy ~= false then
+			if button:FindFirstChildOfClass("Model") then
+				button:FindFirstChildOfClass("Model"):Destroy()
+			end
+		else
+			if button:FindFirstChildOfClass("Model") then
+				button.Transparency = 1
+				button.Icon.Transparency = 1
+			end
+			
+		end
+		local Max = game.ReplicatedStorage.RE.GetMaxUnits:Invoke(plr)
+		game.ReplicatedStorage.RE.UpdateMaxUnits:FireClient(plr,Max)
+	end
+end)
+
+game.ReplicatedStorage.RE.Relinquish.Event:Connect(function(plr, button, bool,destroy)
+	if button.Parent.Name == plr.Name then
+		game.ReplicatedStorage.RE.RemoveButtonSave:Fire(plr,button.Name)
+		if bool == true then
+			button.Transparency = 0
+			button.Icon.Transparency = 0
+		end
+		if destroy ~= false then
+			if button:FindFirstChildOfClass("Model") then
+				button:FindFirstChildOfClass("Model"):Destroy()
+			end
+		else
+			if button:FindFirstChildOfClass("Model") then
+				button.Transparency = 1
+				button.Icon.Transparency = 1
+			end
+		end
+		local Max = game.ReplicatedStorage.RE.GetMaxUnits:Invoke(plr)
+		game.ReplicatedStorage.RE.UpdateMaxUnits:FireClient(plr,Max)
+	end
+end)
