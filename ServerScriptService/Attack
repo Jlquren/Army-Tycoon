@@ -1,0 +1,409 @@
+-- Get Service --
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+
+local Last = {}
+
+local function CreateExplosion(target,Time)
+	local explode = ReplicatedStorage.Effects.Explosion:Clone()
+	explode.Parent = target.PrimaryPart
+	explode.Enabled = true
+	spawn(function()
+		wait(Time)
+		if explode then
+			explode.Enabled = false
+		end
+		wait(.5)
+		if explode then
+			explode:Destroy()
+		end
+	end)
+		--game.Debris:AddItem(explode,2)
+end
+
+local DamagedLast = {}
+local function DamageUnit(unit,target,RootPart,Class)
+	--if DamagedLast[unit] ~= nil and tick() - DamagedLast[unit] <=.5 then return end
+	--DamagedLast[unit] = tick()
+	if target then
+		if target.PrimaryPart == nil then
+			if target:FindFirstChild('Torso') then
+				target.PrimaryPart = target.Torso
+			else
+				--print(target.Name,'HAS NO PRIMARYPART/TORSO')
+				return
+			end
+		end
+		local targetHumanoid = target:FindFirstChild('Humanoid')
+		if targetHumanoid then
+			if RootPart:FindFirstChild('Damage') then
+				targetHumanoid.Health = targetHumanoid.Health - RootPart.Damage.Value
+			end
+			local Attacking = target.PrimaryPart:FindFirstChild('Attacking') -- HERE
+			
+			--local unitPlayer = nil
+			local targetPlayer = nil
+			if unit and unit.Parent then
+				--unitPlayer = game.Players:FindFirstChild(unit.Parent.Name)
+				targetPlayer = game.Players:FindFirstChild(target.Parent.Name)
+			end
+			if (Attacking and Attacking.Value == nil) and targetPlayer then
+				--if unitPlayer then
+					--print("looking for enemies")
+					ReplicatedStorage.RE.spotEnemy:FireClient(targetPlayer,target)
+					--game.ReplicatedStorage.RE.spotEnemy:FireClient(unitPlayer, target)
+				--end
+			end
+			
+			--[[if (Attacking and Attacking.Value == nil) and game.Players:FindFirstChild(unit.Parent.Name) then
+				local opponent = game.Players[unit.Parent.Name]
+				game.ReplicatedStorage.RE.spotEnemy:FireClient(opponent, target)
+			end]]
+			if targetHumanoid.Health <= 0 and targetHumanoid then
+				if target.Parent ~= workspace.Game.Dead then
+					target.Parent = workspace.Game.Dead
+				end
+				--target.PrimaryPart.Material = Enum.Material.CorrodedMetal
+				for i,v in pairs (target:GetChildren()) do
+					if v:IsA('BasePart') then
+						v.Material = Enum.Material.CorrodedMetal
+						if v:IsA('MeshPart') then
+							v.TextureID = ''
+						end
+					elseif v:FindFirstChild('Mesh') then
+						v.Mesh.TextureId = ''
+					end
+				end
+				
+				if target.PrimaryPart then
+					if not target.PrimaryPart:IsA('MeshPart') then
+						target:SetPrimaryPartCFrame(target.PrimaryPart.CFrame * CFrame.Angles(math.rad(-90),0,0))
+					end
+					local gui = target.PrimaryPart:FindFirstChild('BillboardGui')
+					if gui then
+						gui:Destroy()
+					end
+					local flaggui = target.PrimaryPart:FindFirstChild('FlagIdentifier')
+					if flaggui then
+						flaggui:Destroy()
+					end
+				end
+				
+--				if target and target.PrimaryPart then
+--					local cl = target.PrimaryPart:FindFirstChild('Class')
+--					if cl then
+--						if cl.Value ~= 'Vehicle' then
+--							target:SetPrimaryPartCFrame(target.PrimaryPart.CFrame * CFrame.Angles(math.rad(-90),0,0))
+--						else
+--							
+--						end
+--					end
+--					--target:SetPrimaryPartCFrame(target.PrimaryPart.CFrame * CFrame.Angles(math.rad(-90),0,0))
+--				end
+				delay(2,function()
+					if target.PrimaryPart then
+						target.PrimaryPart.Anchored = true
+					end
+				end)
+				if Class == 'Vehicle' then
+					CreateExplosion(target,.2)
+				end
+				
+				targetHumanoid.HipHeight = 0
+				targetHumanoid:Destroy() -- this creates a HUGE issue
+				if Attacking then
+					Attacking.Value = nil
+				end
+				
+				local unitPlayer = nil
+				if unit and unit.Parent then
+					unitPlayer = game.Players:FindFirstChild(unit.Parent.Name)
+				end
+				if (Attacking and Attacking.Value == nil) and unitPlayer then
+					--game.ReplicatedStorage.RE.spotEnemy:FireClient(unitPlayer, target)
+					game.ReplicatedStorage.RE.spotEnemy:FireClient(unitPlayer,unit)
+				end
+				--[[if (Attacking and Attacking.Value == nil) and game.Players:FindFirstChild(unit.Parent.Name) then
+					local opponent = game.Players[unit.Parent.Name]
+					game.ReplicatedStorage.RE.returnDead:FireClient(opponent, target)
+				end]]
+				game.Debris:AddItem(target,30)
+			else
+				if targetHumanoid then
+					--print('Target is still alive with',targetHumanoid.Health)
+				else
+					--print('No humanoid')
+				end
+			end
+			
+		end
+		
+	else
+		--print('TARGET = NIL IMPORTANT!!!!!!!!!!!!')
+	end
+	
+end
+
+game.ReplicatedStorage.RE.Attack.OnServerEvent:Connect(function(plr, unit, target)
+	if unit == nil then return end
+	if Last[unit] ~= nil and tick() - Last[unit] <=.5 then return end
+	Last[unit] = tick()
+	--print(unit.Name,'Attacking',target)
+	local RootPart = unit:FindFirstChild('Torso') -- FindFirstChild not WaitForChild
+	if RootPart == nil then return end
+	if target == nil or target.PrimaryPart == nil then return end
+	local Class = RootPart.Class.Value
+	if (RootPart.Class.Value == "Archer" or RootPart.Class.Value == 'Vehicle' or RootPart.Class.Value == 'Boomer') and  (target.PrimaryPart.Position - RootPart.Position).Magnitude <=  RootPart.Range.Value then		--RANGED -- primary part = nil
+		RootPart.Attacking.Value = target
+		local beam = RootPart:FindFirstChild('Beam')
+		if beam == nil then return end
+		local origin = Instance.new("Attachment", RootPart)
+		local spot = unit:FindFirstChild('Head') and unit.Head or unit.PrimaryPart and unit.PrimaryPart
+		if spot then
+			origin.WorldPosition = spot.Position
+		end
+		origin.WorldOrientation = Vector3.new(0,0,90)
+		local enemy
+		if target and target.PrimaryPart then
+			enemy = Instance.new("Attachment")
+			enemy.Parent = target.PrimaryPart
+			local spot = target:FindFirstChild('Head') and target.Head or target.PrimaryPart and target.PrimaryPart
+			if spot then
+				enemy.WorldPosition = spot.Position
+			end
+		end
+	
+		beam.Attachment0 = origin
+		if enemy then
+			
+			beam.Attachment1 = enemy
+		end
+		beam.Enabled = true
+		
+		while unit and target and target:FindFirstChild("Humanoid") and unit:FindFirstChild("Humanoid") and RootPart and target.PrimaryPart and (target.PrimaryPart.Position - RootPart.Position).Magnitude <=  RootPart.Range.Value do
+			if unit.PrimaryPart then
+				unit:SetPrimaryPartCFrame(CFrame.new(RootPart.Position, Vector3.new(target.PrimaryPart.Position.X,RootPart.Position.Y,target.PrimaryPart.Position.Z)))
+			else
+				--print('unit prim part is = nil')
+			end
+			local sound = RootPart:FindFirstChildOfClass("Sound")
+			if sound then
+				sound:Play()
+			end
+			wait(1/beam.TextureSpeed)
+			
+			if target.PrimaryPart then
+				if Class == 'Vehicle' or Class == 'Boomer' then
+					CreateExplosion(target,.05)
+				end
+			end
+			
+			local humanoid = unit:FindFirstChild('Humanoid')
+			
+			if humanoid == nil or humanoid ~= nil and humanoid.Health <= 0 then
+				break
+			end
+			
+			if target:FindFirstChild("Humanoid") then
+				
+				DamageUnit(unit,target,RootPart,Class)
+				
+			end
+		end
+		if RootPart and RootPart:FindFirstChild('Attacking') then
+			RootPart.Attacking.Value = nil
+		end
+		beam.Enabled = false
+		if enemy then
+			enemy:Destroy()
+		end
+		if origin then
+		origin:Destroy()
+		end
+		game.ReplicatedStorage.RE.spotEnemy:FireClient(plr, unit)
+	elseif RootPart.Class.Value == 'SwordsMan' or RootPart.Class.Value == 'LongSwordsMan' then																	---MELEEE
+		RootPart.Attacking.Value = target
+		local gyro = Instance.new("BodyAngularVelocity", RootPart)
+		gyro.AngularVelocity = Vector3.new(0,0,0)
+		local unitHuman = unit:FindFirstChild('Humanoid')
+		while unit and target and target:FindFirstChild("Humanoid") and unitHuman and RootPart and target.PrimaryPart and RootPart:FindFirstChild('Range') and (target.PrimaryPart.Position - RootPart.Position).Magnitude <=  RootPart.Range.Value do
+			spawn(function()
+				if target == nil or target.PrimaryPart == nil or RootPart == nil then return end
+				if (target.PrimaryPart.Position - RootPart.Position).Magnitude <=  5 then
+					if unit and unit.PrimaryPart then
+						unit:SetPrimaryPartCFrame(CFrame.new(RootPart.Position, target.PrimaryPart.Position))		---FACE ENEMY
+					end
+					if RootPart then
+						local sound = RootPart:FindFirstChildOfClass("Sound")
+						if sound then
+							sound.Pitch = math.random(7,13)/10
+							sound:Play()
+						end
+						
+						if RootPart:FindFirstChild('Class') then
+							if RootPart.Class.Value == "LongSwordsMan" then
+								gyro.AngularVelocity = Vector3.new(0,0,4)
+								wait(0.5)
+								gyro.AngularVelocity = Vector3.new(0,0,-4)
+								wait(0.5)
+							elseif  RootPart.Class.Value == "SwordsMan" then
+								gyro.AngularVelocity = Vector3.new(0,2,0)
+								wait(0.5)
+								gyro.AngularVelocity = Vector3.new(0,-2,0)
+								wait(0.5)
+							end
+						end
+						
+					end
+					
+					if target:FindFirstChild("Humanoid") then
+						
+						DamageUnit(unit,target,RootPart,Class)
+						
+					end
+				else
+					gyro.AngularVelocity = Vector3.new(0,0,0)
+					local destiny = (target.PrimaryPart.CFrame * CFrame.new(0,0,-3)).p
+					game.ReplicatedStorage.RE.moveUnit2:Fire(plr,  unit, destiny)
+					wait(2)
+				end
+			end)
+			wait(1.5)
+		end
+		local atck = RootPart:FindFirstChild('Attacking')
+		if atck then
+			atck.Value = nil
+		end
+		gyro:Destroy()
+		game.ReplicatedStorage.RE.spotEnemy:FireClient(plr, unit)
+	elseif RootPart.Class.Value == 'Catapult' then
+		RootPart.Attacking.Value = target
+		local beam = game.ReplicatedStorage.Effects.Rock:Clone()
+		beam.Parent = RootPart
+		local constraint = unit.Spinny.Motor.HingeConstraint
+		local weld = unit.Spinny.Motor.WeldConstraint
+		beam.CurveSize0 = 1
+		beam.CurveSize1 = 0
+		local origin = Instance.new("Attachment", unit.Spinny.Bucket)
+		origin.WorldPosition = unit.Spinny.Bucket.Position
+		origin.WorldOrientation = Vector3.new(0,0,90)
+		local enemy
+		if target and target.PrimaryPart then
+			enemy = Instance.new("Attachment")
+			enemy.Parent = target.PrimaryPart
+		end
+		if target and target:FindFirstChild('Head') then
+			enemy.WorldPosition = target.Head.Position
+		end
+		beam.Attachment0 = origin
+		beam.Attachment1 = enemy
+		
+		spawn(function()
+			weld.Enabled = false
+			constraint.AngularSpeed = 50
+			repeat
+				
+				constraint.TargetAngle = 60
+				wait(.95)
+				constraint.TargetAngle = -60
+				wait(.75)
+				--print('Shoot')
+				
+				-- Attacking is the issu
+				local Attacking = RootPart:FindFirstChild('Attacking')
+				if unit == nil or beam == nil or origin == nil or Attacking ~= nil or (Attacking ~= nil and Attacking.Value == nil) then
+					break
+				end
+				
+			until unit == nil or beam == nil or origin == nil
+			constraint.AngularSpeed = 100
+			constraint.TargetAngle = 60
+			weld.Enabled = true
+		end)
+		
+		beam.Enabled = true
+		while unit and target and target:FindFirstChild("Humanoid") and unit:FindFirstChild("Humanoid") and target.PrimaryPart and RootPart and (target.PrimaryPart.Position - RootPart.Position).Magnitude <=  RootPart.Range.Value do
+			if unit and unit.PrimaryPart then
+				unit:SetPrimaryPartCFrame(CFrame.new(RootPart.Position, target.PrimaryPart.Position))		---FACE ENEMY
+			else
+				--print('unit prim part is = nil')
+			end
+			if RootPart then
+				local sound = RootPart:FindFirstChildOfClass("Sound")
+				if sound then
+					sound:Play()
+				end
+			end
+			wait(1/beam.TextureSpeed)
+			if target:FindFirstChild("Humanoid") then
+				
+				DamageUnit(unit,target,RootPart,Class)
+				
+			end
+		end
+		if RootPart and RootPart:FindFirstChild('Attacking') then
+			RootPart.Attacking.Value = nil
+		end
+		--weld.Enabled = false
+		if beam then
+		beam:Destroy()
+		end
+		if enemy then
+		enemy:Destroy()
+		end
+		if origin then
+		origin:Destroy()
+		end
+		game.ReplicatedStorage.RE.spotEnemy:FireClient(plr, unit)
+	elseif RootPart.Class.Value == 'Cavalry' then
+		RootPart.Attacking.Value = target
+		--print('Spearman, ATTACK')
+		while unit and target and target:FindFirstChild("Humanoid") and unit:FindFirstChild("Humanoid") and target.PrimaryPart and RootPart and (target.PrimaryPart.Position - RootPart.Position).Magnitude <=  RootPart.Range.Value do
+			spawn(function()
+				if not target or not target.PrimaryPart or not RootPart then return end
+				if (target.PrimaryPart.Position - RootPart.Position).Magnitude <=  5 then
+					if unit and unit.PrimaryPart then
+					unit:SetPrimaryPartCFrame(CFrame.new(RootPart.Position, target.PrimaryPart.Position))		---FACE ENEMY
+					end
+					
+					if RootPart then
+						RootPart:FindFirstChildOfClass("Sound"):Play()
+						local sound = RootPart:FindFirstChildOfClass("Sound")
+						if sound then
+							sound.Pitch = math.random(7,13)/10
+							sound:Play()
+						end
+					end
+					
+					if unit.PrimaryPart then
+						unit.PrimaryPart.Anchored = true
+						unit:SetPrimaryPartCFrame(CFrame.new(unit.PrimaryPart.Position + Vector3.new(0,.5,0)) * CFrame.Angles(math.rad(25),0,0))
+					end
+					wait(.25)
+					if unit.PrimaryPart then
+					unit.PrimaryPart.Anchored = false
+					end
+					
+					if target:FindFirstChild("Humanoid") then
+						
+						DamageUnit(unit,target,RootPart,Class)
+						
+					end
+				else
+					local destiny = (target.PrimaryPart.CFrame * CFrame.new(0,0,-3)).p
+					game.ReplicatedStorage.RE.moveUnit2:Fire(plr,  unit, destiny)
+					wait(2)
+				end
+			end)
+			wait(2)
+		end
+		if RootPart and RootPart:FindFirstChild('Attacking') then
+			RootPart.Attacking.Value = nil -- would have to do an auto check for the attacking humanoid, to see if/when it died
+			
+		end
+		game.ReplicatedStorage.RE.spotEnemy:FireClient(plr, unit)
+	elseif Class ~= 'Archer' and Class ~= 'Vehicle' and Class ~= 'Boomer' then
+		
+		print(RootPart.Class.Value,'Needs to be set up')
+	end
+end)
+--unit:SetPrimaryPartCFrame(CFrame.new(RootPart.Position, target.PrimaryPart.Position))
