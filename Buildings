@@ -1,0 +1,369 @@
+local module = 
+
+	{
+		['Airport'] = 
+			{
+				Color = Color3.fromRGB(100, 164, 194),
+				[1] = 
+					{
+						Cost = 15000,
+						Desc = 'An Airfield that allows you to train Fighter Jets.',
+						Income = 0,
+						Pop = 0,
+						Time = 20,
+						Unit = 'Fighter Jet',
+					},
+			},	
+			
+		['Barracks'] = 
+			{
+				Color = Color3.fromRGB(0, 170, 127),
+				[1] = 
+					{
+						Cost = 500,
+						Desc = 'Housing Building for Troops (+1 Population)',
+						Income = 0,
+						Pop = 1,
+						Time = 20,
+						Unit = nil,
+					},
+				[2] = 
+					{
+						Cost = 1250,
+						Desc = 'An upgraded area to train your elite troops.',
+						Income = 0,
+						Pop = 2,
+						Time = 30,
+						Unit = nil,
+					},
+			},
+		
+		['Command Center'] = 
+			{
+				Color = Color3.fromRGB(0, 170, 255),
+				[1] = 
+					{
+						Cost = 0,
+						Desc = 'The Command Center trains Scouts and Centralizes your Base',
+						Income = 100,
+						Pop = 5,
+						Time = 15,
+						Unit = 'Scout',
+					},
+				[2] = 
+					{
+						Cost = 55000,
+						Desc = 'Clears up space for your more powerful troops! Also Generates x10 $$$',
+						Income = 1200,
+						Pop = 5,
+						Time = 300,
+						Unit = nil,
+					},
+			},
+			
+		['Drone Factory'] = 
+			{
+				Color = Color3.fromRGB(170, 85, 255),
+				[1] = 
+					{
+						Cost = 10,
+						Desc = 'Trains Predator Drones',
+						Income = 0,
+						Pop = 0,
+						Time = 0,
+						Unit = 'Drone',
+					},
+			},
+			
+		['Factory'] = 
+				{
+				Color = Color3.fromRGB(166, 163, 139),
+				[1] = 
+					{
+						Cost = 3000,
+						Desc = 'Generates $$$ from Manufacturing.',
+						Income = 150,
+						Pop = 0,
+						Time = 20,
+						Unit = nil,
+					},
+				[2] = 
+					{
+						Cost = 7000,
+						Desc = 'Generates more $$$ from Manufacturing!',
+						Income = 325,
+						Pop = 0,
+						Time = 30,
+						Unit = nil,
+					},
+				[3] = 
+					{
+						Cost = 10000,
+						Desc = 'Generates even more $$$ from Manufacturing',
+						Income = 6000,
+						Pop = 0,
+						Time = 45,
+						Unit = nil,
+					},
+				},
+		['Generator Powerplant'] = 
+				{
+					Color = Color3.fromRGB(85, 85, 127),
+					[1] = 
+						{
+							Cost = 500,
+							Desc = 'Generates $$$ by refining Power.',
+							Income = 75,
+							Pop = 0,
+							Time = 20,
+							Unit = nil,
+						},
+				},
+				
+		
+		['Greenhouse'] = 
+				{
+					Color = Color3.fromRGB(85, 170, 0),
+					[1] = 
+						{
+							Cost = 200,
+							Desc = 'Generates $$$ by producing Crops.',
+							Income = 500,
+							Pop = 0,
+							Time = 10,
+							Unit = nil,
+						},
+					[2] = 
+						{
+							Cost = 1500,
+							Desc = 'Generates more $$$ by producting advanced Crops',
+							Income = 2500,
+							Pop = 0,
+							Time = 35,
+							Unit = nil,
+						},
+				},
+			
+		['Guard Tower'] = 
+			{
+				Color = Color3.fromRGB(170, 85, 127),
+				[1] = 
+					{
+						Cost = 250,
+						Desc = 'Guard Towers provide Defense.',
+						Income = 0,
+						Pop = 0,
+						Time = 20,
+						Unit = nil,
+					},
+			},
+			
+		['Helicopter Bay'] = 
+			{
+				Color = Color3.fromRGB(0, 85, 127),
+				[1] = 
+					{
+						Cost = 5000,
+						Desc = 'Allows you to Train Helicopter Units.',
+						Income = 0,
+						Pop = 0,
+						Time = 20,
+						Unit = 'Helicopter',
+					},
+				[2] = 
+					{
+						Cost = 8500,
+						Desc = 'Upgrades your Helicopters to APACHE HELICOPTERS!',
+						Income = 0,
+						Pop = 0,
+						Time = 35,
+						Unit = 'Apache',
+					},
+			},
+			
+		['Main Base'] = 
+			{
+				Color = Color3.fromRGB(0, 85, 127),
+				[1] = 
+					{
+						Cost = 20000,
+						Desc = 'Massive Fortification that trains Elite Soldiers.',
+						Income = 0,
+						Pop = 0,
+						Time = 20,
+						Unit = 'Anti-Tank Troop',
+					},
+				[2] = 
+					{
+						Cost = 45000,
+						Desc = 'Enormous Fortification that trains JUGGERNAUTS!',
+						Income = 0,
+						Pop = 0,
+						Time = 45,
+						Unit = 'Juggernaut',
+					},
+			},
+		['Military'] = 
+			{
+			['Infantry Training Camp'] = 
+					{
+						Color = Color3.fromRGB(80, 109, 84),
+						[1] = 
+							{
+								Cost = 500,
+								Desc = 'Trains Infantry Troops.',
+								Income = 0,
+								Pop = 0,
+								Time = 20,
+								Unit = 'Light Infantry',
+							},
+						[2] = 
+							{
+								Cost = 1750,
+								Desc = 'Trains Medium Infantry Troops',
+								Income = 0,
+								Pop = 0,
+								Time = 35,
+								Unit = 'Medium Infantry',
+							},
+						[3] = 
+							{
+								Cost = 4000,
+								Desc = 'Trains Heavy Infantry Troops!',
+								Income = 0,
+								Pop = 0,
+								Time = 50,
+								Unit = 'Heavy Infantry',
+							},
+					},
+			['Vehicle Depot'] = 
+					{
+						Color = Color3.fromRGB(80, 109, 84),
+						[1] = 
+							{
+								Cost = 1750,
+								Desc = 'Constructs Mobile Trucks.',
+								Income = 0,
+								Pop = 0,
+								Time = 20,
+								Unit = 'Pickup Truck',
+							},
+						[2] = 
+							{
+								Cost = 5000,
+								Desc = 'Constructs Mobile Humvees.',
+								Income = 0,
+								Pop = 0,
+								Time = 35,
+								Unit = 'Humvee',
+							},
+					},
+			['Tank Factory'] = 
+					{
+						Color = Color3.fromRGB(80, 109, 84),
+						[1] = 
+							{
+								Cost = 3100,
+								Desc = 'Constructs Armored Vehicles.',
+								Income = 0,
+								Pop = 0,
+								Time = 20,
+								Unit = 'Light Tank',
+							},
+						[2] = 
+							{
+								Cost = 5250,
+								Desc = 'Constructs Heavy Armored Vehicles!',
+								Income = 0,
+								Pop = 0,
+								Time = 35,
+								Unit = 'Heavy Tank',
+							},
+					},
+			},
+			
+		['Missile Factory'] = 
+				{
+				Color = Color3.fromRGB(80, 109, 84),
+				[1] = 
+					{
+						Cost = 10,
+						Desc = 'Constructs Missile Launchers.',
+						Income = 0,
+						Pop = 0,
+						Time = 0,
+						Unit = 'Missile Launcher',
+					},
+				},
+		['Nuclear Powerplant'] = 
+				{
+				Color = Color3.fromRGB(255, 255, 127),
+				[1] = 
+					{
+						Cost = 20000,
+						Desc = 'Producs $$$ from Nuclear Energy.',
+						Income = 1300,
+						Pop = 0,
+						Time = 35,
+						Unit = nil,
+					},
+				},
+			
+		['Oil Field'] = 
+			{
+				Color = Color3.fromRGB(0, 0, 0),
+				[1] = 
+					{
+						Cost = 5000,
+						Desc = 'Produces $$$ from Oil Exports.',
+						Income = 720,
+						Pop = 0,
+						Time = 20,
+						Unit = nil,
+					},
+				[2] = 
+					{
+						Cost = 10000,
+						Desc = 'Produces more $$$ from intermediate exports!',
+						Income = 880,
+						Pop = 0,
+						Time = 35,
+						Unit = nil,
+					},
+				[3] = 
+					{
+						Cost = 150000,
+						Desc = 'Produces even more $$$ from advanced exports!',
+						Income = 11000,
+						Pop = 0,
+						Time = 50,
+						Unit = nil,
+					},
+			},
+			
+		['Wall'] = 
+			{
+				Color = Color3.fromRGB(170, 85, 127),
+				[1] = 
+					{
+						Cost = 500,
+						Desc = 'Foundational Defense for your Base.',
+						Income = 0,
+						Pop = 0,
+						Time = 20,
+						Unit = nil,
+					},
+				[2] = 
+					{
+						Cost = 1000,
+						Desc = 'Barbed wire wall ensuring maximum defense!',
+						Income = 0,
+						Pop = 0,
+						Time = 30,
+						Unit = nil,
+					},
+			},
+			
+	}
+
+return module
