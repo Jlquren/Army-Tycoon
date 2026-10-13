@@ -1,0 +1,110 @@
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local Modules = ReplicatedStorage.Modules
+local BuildingsMod = require(Modules.Buildings)
+
+local module = {}
+
+module.BlackListedBuildingTypes = {'Grape Vineyard','Wheat Farm','Corn Field','Carrot Farm','Lumber Camp','Mine'}
+
+module.PlayersPurchasedPasses = {}
+
+module.ColorsTab = {}
+
+module.FindMod = function(name,level)
+	local SentCategory, SentBuild, Color = nil,nil,nil
+	for Category,CatTable in pairs (BuildingsMod) do
+		
+		if Category == name then
+			SentCategory = CatTable
+			if CatTable[1] then
+				SentBuild = 'Build'
+				Color = CatTable.Color
+			else
+				SentBuild = 'Building Option'
+			end
+			break
+		end
+		
+		if CatTable[1] then
+		else
+			for SubCategory, SubCatTable in pairs (CatTable) do
+				if SubCategory == name then
+					SentCategory = SubCatTable
+					SubCatTable = CatTable.Color
+					if CatTable[1] then
+						SentBuild = 'Build'
+						
+					else
+						SentBuild = 'Building Option'
+					end
+					break
+				else
+				end
+			end
+			
+		end
+	end
+	
+	
+	local moreUpgrades = nil
+	if level then
+		level = tonumber(level)
+		if level then
+			if SentCategory[level] then
+				SentCategory = SentCategory[level]
+			else
+				moreUpgrades = false
+			end
+		else
+			print(level,'Must be a valid number if needed')
+		end
+	end
+	
+	return SentCategory, SentBuild, Color, moreUpgrades
+end
+
+return module
+
+--[[
+	local function FindMod(name) -- Do this in globalsMod]
+	local SentCategory, SentBuild = nil,nil,nil
+	for Category,CatTable in pairs (BuildingsMod) do
+		
+		if Category == name then
+			SentCategory = CatTable
+			--print(Category,'==',name)
+			if CatTable[1] then
+				SentBuild = 'Build'
+			else
+				SentBuild = 'Building Option'
+			end
+			break
+		end
+		
+		if CatTable[1] then
+			--print(Category,'Build')
+			--SentBuild = 'Build'
+		else
+			
+			--print(Category,'Building Option')
+			for SubCategory, SubCatTable in pairs (CatTable) do
+				if SubCategory == name then
+					SentCategory = Category
+					--print(SubCategory,'==',name)
+					if CatTable[1] then
+						SentBuild = 'Build'
+					else
+						SentBuild = 'Building Option'
+					end
+					break
+				else
+					--print(SubCategory,'~=',name)
+				end
+			end
+			
+		end
+	end
+	
+	return SentCategory, SentBuild
+end
+--]]
