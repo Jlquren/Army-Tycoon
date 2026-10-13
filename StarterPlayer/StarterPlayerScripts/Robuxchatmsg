@@ -1,0 +1,14 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
+local PurchaseEvent = ReplicatedStorage:WaitForChild("PurchaseEvent")
+
+PurchaseEvent.OnClientEvent:Connect(function(playerName, itemName)
+	local textChannels = TextChatService:FindFirstChild("TextChannels")
+	local generalChannel = textChannels and textChannels:FindFirstChild("RBXGeneral")
+
+	if generalChannel then
+		-- Формируем красивое сообщение
+		local msg = "<font color='#00FF00'><b>[SERVER]</b></font> ✨ " .. playerName .. " purchased: " .. itemName .. "! ❤️"
+		generalChannel:DisplaySystemMessage(msg)
+	end
+end)
