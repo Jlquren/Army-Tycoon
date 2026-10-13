@@ -1,0 +1,17 @@
+local ItemConfig = {}
+
+ItemConfig.Products = {
+	[927928933] = "Nuke",
+	[3599476080] = "Missile Factory",
+	[3599474855] = "Drone Factory",
+}
+
+ItemConfig.GamePasses = {
+	[11183474255] = "Double Gold",
+	[11183474255] = "Double Units",
+	[2029358274] = "Desert Skin",
+	[2028950280] = "Black Ops Skin",
+	--[3874338416] = "BLACKOUT OPS",
+}
+
+return ItemConfig
