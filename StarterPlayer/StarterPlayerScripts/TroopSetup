@@ -1,0 +1,65 @@
+-- Get Service --
+local Players = game:GetService('Players')
+local RunService = game:GetService('RunService')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+
+--
+local Remotes = ReplicatedStorage.RE
+-- Player --
+local Player = Players.LocalPlayer
+
+
+-- Variables --
+local Troops = {}
+
+local folder = workspace.Game.Units:WaitForChild(Player.Name)
+
+for i,v in pairs (folder:GetChildren()) do
+	table.insert(Troops,v)
+end
+folder.ChildAdded:Connect(function(child)
+	table.insert(Troops,child)
+end)
+folder.ChildRemoved:Connect(function(child)
+	for i = #Troops,1,-1 do
+		if Troops[i] == child then
+			table.remove(Troops,i)
+		end
+	end
+	Remotes.RemoveTroop:FireServer(child)
+end)
+
+
+local LastParts = {}
+while true do wait(.5)
+	for i,v in pairs (folder:GetChildren()) do
+		wait()
+		spawn(function()
+			local head = v:FindFirstChild('Head') or v:FindFirstChild('Torso')
+			if head and v:FindFirstChild('Humanoid') then
+				if v.Humanoid.Health <=0 then Remotes.StartCapturing:FireServer(LastParts[v],false) print(false,1) LastParts[v] = nil return end
+				local ray = Ray.new(head.Position,Vector3.new(0,-100,0))
+				local part,pos = workspace:FindPartOnRayWithWhitelist(ray,{workspace.Game.Base.Interactives})
+				
+				if part then
+					if LastParts[v] ~= part then
+						LastParts[v] = part
+						Remotes.StartCapturing:FireServer(part,true)
+					end
+				else
+					if LastParts[v] then
+						Remotes.StartCapturing:FireServer(LastParts[v],false)
+						LastParts[v] = nil
+					end
+				end
+				
+			else
+				if LastParts[v] then
+					Remotes.StartCapturing:FireServer(LastParts[v],false) LastParts[v] = nil
+				end
+			end
+		end)
+	end
+end
+
+
