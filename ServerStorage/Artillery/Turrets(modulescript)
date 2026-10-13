@@ -1,0 +1,83 @@
+local Turret = {}
+
+Turret.Beam = game.ReplicatedStorage.Effects.MG
+Turret.Beam.Attachment0 = nil
+Turret.Beam.Attachment1 = nil
+
+local previousTarget = ""
+
+function FindTargets(t)
+	local targets = {}
+	for _,v in pairs(game.Workspace.Game.Units:GetChildren())do
+		if v.Name ~= t.Data.Owner.Value then
+			for _,u in pairs(v:GetChildren()) do
+				if (u.PrimaryPart.Position - t.TurretBody.Position).Magnitude <= 30 then
+					targets[#targets + 1] = u
+					if u == previousTarget then
+						return{u}
+					end
+				end
+			end
+		end
+	end
+	return targets
+end
+
+function Aim(t,u)-- u = target
+	local pointLook = Vector3.new(u.PrimaryPart.Position.X,t.TurretBody.Position.Y,u.PrimaryPart.Position.Z)
+	t.TurretBody.CFrame = CFrame.new(t.TurretBody.Position,pointLook) * CFrame.Angles(0,math.rad(180),0)
+end
+
+local function newSound(givenSound)
+	spawn(function()
+		local nSound = givenSound:Clone()
+		nSound.Parent = givenSound.Parent
+		nSound:Play()
+		wait(2.8)
+		nSound:Destroy()
+	end)
+end
+
+function Fire(t,target)
+	local shot = Turret.Beam:Clone()
+	local LocalAttach = t.TurretBody.TurretAttach
+	shot.Parent = t
+	shot.Attachment0 = LocalAttach
+	local targetAttach = Instance.new("Attachment")
+	targetAttach.Parent = target.PrimaryPart
+	targetAttach.Position = Vector3.new(0,2,0)
+	shot.Attachment1 = targetAttach
+	newSound(t.sound)
+	wait(.1)
+	target.Humanoid.Health = target.Humanoid.Health - 5
+	if target.Humanoid.Health <= 0 and target.Humanoid then
+		target.Parent = workspace.Game.Dead
+		target.PrimaryPart.Anchored = true
+		target.Humanoid:Destroy() -- this creates a HUGE issue
+		target:SetPrimaryPartCFrame(target.PrimaryPart.CFrame * CFrame.Angles(math.rad(-90),0,0))
+		game.Debris:AddItem(target,30)
+	end
+	shot:Destroy()
+	targetAttach:Destroy()
+end
+
+function Turret.DoStuff(givenScript)
+	while true do 
+		if givenScript.Parent.Data.Owner.Value == '' then
+			wait(2)
+		else
+			local targets = FindTargets(givenScript.Parent)
+			if targets[1] then
+				local targetIndex = math.random(1,#targets)
+				local target = targets[targetIndex]
+				previousTarget = target
+				Aim(givenScript.Parent,target)
+				Fire(givenScript.Parent,target)
+			end
+			wait(0.5)
+		end
+	end
+end
+
+
+return Turret
